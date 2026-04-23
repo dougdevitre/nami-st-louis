@@ -129,7 +129,7 @@ body { font-family: var(--font); background: var(--bg-1); color: var(--tx-0); li
 .mod-btn.active { color: var(--accent-text); border-bottom-color: var(--accent-text); }
 
 /* ── Module panels ── */
-.module { display: none; padding: 1.5rem 0 3rem; }
+.module { display: none; padding: 1.5rem 0 6rem; }
 .module.visible { display: block; animation: fadeIn 0.2s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 

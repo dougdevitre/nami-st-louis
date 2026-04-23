@@ -50,8 +50,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".mod-btn").forEach((b) => b.classList.remove("active"));
     panel.classList.add("visible");
     renderModule(id, sub);
+    document.querySelectorAll(".mod-btn").forEach((b) => b.removeAttribute("aria-current"));
     const btn = document.querySelector(`.mod-btn[data-mod="${id}"]`);
-    if (btn) btn.classList.add("active");
+    if (btn) { btn.classList.add("active"); btn.setAttribute("aria-current", "page"); }
   }
 
   window.addEventListener("hashchange", () => {
@@ -688,6 +689,8 @@ document.addEventListener("DOMContentLoaded", () => {
       t = document.createElement("div");
       t.id = "app-toast";
       t.className = "toast";
+      t.setAttribute("role", "status");
+      t.setAttribute("aria-live", "polite");
       document.body.appendChild(t);
     }
     t.textContent = msg;
@@ -774,11 +777,16 @@ document.addEventListener("DOMContentLoaded", () => {
       try { history.replaceState(null, "", "/"); } catch (_) {}
       location.replace(NEUTRAL);
     }
+    function openOverlay() {
+      return document.querySelector(".detail-overlay.open, .form-overlay.open");
+    }
     const btn = document.getElementById("quick-exit");
     if (btn) btn.addEventListener("click", bail);
     let lastEsc = 0;
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
+      const overlay = openOverlay();
+      if (overlay) { overlay.classList.remove("open"); lastEsc = 0; return; }
       const now = Date.now();
       if (now - lastEsc < 500) bail();
       lastEsc = now;
