@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NAMI St. Louis — Community Mental Health Hub</title>
-  <meta name="description" content="Community platform for NAMI St. Louis — programs, shared calendar, volunteer coordination, crisis resources, policy advocacy, and community discussion." />
-  <meta name="theme-color" content="#1B365D" />
+  <meta name="description" content="Programs, crisis support, a safety-plan builder, a shared calendar, volunteer coordination, resources, and advocacy for the St. Louis mental health community." />
+  <meta name="theme-color" content="#1B5E5A" />
   <meta property="og:title" content="NAMI St. Louis — Community Mental Health Hub" />
-  <meta property="og:description" content="Programs, events, volunteer opportunities, crisis resources, and advocacy tools for the NAMI St. Louis community." />
+  <meta property="og:description" content="Crisis support, safety plan, programs, events, volunteers, and resources for the NAMI St. Louis community." />
   <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,28 +18,43 @@
 
   <a href="#main-content" class="skip-link">Skip to content</a>
 
-  <button type="button" id="quick-exit" class="quick-exit" aria-label="Quick exit — leave this site and redirect to a neutral page (double-tap Escape)">
-    <span aria-hidden="true">&times;</span> Quick exit
-  </button>
-
-  <header class="site-header">
-    <div class="org">NAMI St. Louis</div>
-    <h1>Community Mental Health Hub</h1>
-    <p class="sub">Programs, events, volunteers, resources, and advocacy — together.</p>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#home" aria-label="NAMI St. Louis home">
+        <span class="brand-org">NAMI St. Louis</span>
+        <span class="brand-name">Community Mental Health Hub</span>
+      </a>
+      <a class="top-pill" href="tel:988" aria-label="Call or text 988 — Suicide and Crisis Lifeline">
+        <span class="pill-dot" aria-hidden="true"></span>
+        <span>988</span>
+      </a>
+      <button type="button" id="quick-exit" class="quick-exit" aria-label="Quick exit — leave this site (or double-tap Escape)">
+        Quick exit
+      </button>
+    </div>
   </header>
 
-  <div class="crisis-strip" role="region" aria-label="Crisis support">
-    <strong>In crisis?</strong>
-    Call or text <a href="tel:988" aria-label="Call or text 988 Suicide and Crisis Lifeline"><strong>988</strong></a>
-    &middot; Text <a href="sms:741741?&body=HOME" aria-label="Text HOME to 741741 Crisis Text Line"><strong>HOME to 741741</strong></a>
-    &middot; St. Louis mobile crisis: <a href="tel:3144696644" aria-label="Call Behavioral Health Response St. Louis"><strong>314-469-6644</strong></a>
-    &middot; Life-threatening: <a href="tel:911"><strong>911</strong></a>
+  <div class="crisis-card" aria-label="Crisis support">
+    <div class="crisis-card-inner">
+      <span class="crisis-label">If you're in crisis —</span>
+      <span>Call or text <a href="tel:988">988</a></span>
+      <span>Text <a href="sms:741741?&body=HOME">HOME to 741741</a></span>
+      <span>STL mobile crisis <a href="tel:3144696644">314-469-6644</a></span>
+      <span>Life-threatening <a href="tel:911">911</a></span>
+    </div>
   </div>
 
   <main class="container" id="main-content" tabindex="-1">
-    <nav class="module-nav" id="module-nav" role="tablist" aria-label="Platform modules"></nav>
+    <nav class="module-nav" id="module-nav" role="tablist" aria-label="Sections"></nav>
     <div id="modules"></div>
   </main>
+
+  <nav class="bottom-nav" id="bottom-nav" aria-label="Primary">
+    <button type="button" class="bn-btn" data-nav="home"><span class="bn-ico" aria-hidden="true">&#9737;</span>Home</button>
+    <button type="button" class="bn-btn" data-nav="safetyplan"><span class="bn-ico" aria-hidden="true">&#10084;</span>Support</button>
+    <button type="button" class="bn-btn" data-nav="calendar"><span class="bn-ico" aria-hidden="true">&#9788;</span>Connect</button>
+    <button type="button" class="bn-btn" data-nav="programs"><span class="bn-ico" aria-hidden="true">&#9873;</span>Learn</button>
+  </nav>
 
   <button type="button" id="help-fab" class="help-fab" aria-label="Get help right now">
     <span class="help-fab-dot" aria-hidden="true"></span>

@@ -2,14 +2,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Module definitions ──
   const MODULES = [
+    { id: "home", label: "Home" },
+    { id: "safetyplan", label: "Safety plan" },
+    { id: "resources", label: "Resources" },
     { id: "programs", label: "Programs" },
     { id: "calendar", label: "Calendar" },
     { id: "volunteers", label: "Volunteers" },
-    { id: "resources", label: "Resources" },
-    { id: "safetyplan", label: "Safety plan" },
     { id: "community", label: "Community" },
     { id: "policy", label: "Policy" },
   ];
+
+  const BOTTOM_NAV_GROUPS = {
+    home: ["home"],
+    safetyplan: ["safetyplan", "resources"],
+    calendar: ["calendar", "volunteers", "community"],
+    programs: ["programs", "policy"],
+  };
 
   const moduleNav = document.getElementById("module-nav");
   const moduleContainer = document.getElementById("modules");
@@ -37,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Routing ──
   function getRoute() {
-    const h = location.hash.replace("#", "") || "programs";
+    const h = location.hash.replace("#", "") || "home";
     const parts = h.split("/");
     return { module: parts[0], sub: parts[1] || null };
   }
@@ -52,7 +60,16 @@ document.addEventListener("DOMContentLoaded", () => {
     renderModule(id, sub);
     document.querySelectorAll(".mod-btn").forEach((b) => b.removeAttribute("aria-current"));
     const btn = document.querySelector(`.mod-btn[data-mod="${id}"]`);
-    if (btn) { btn.classList.add("active"); btn.setAttribute("aria-current", "page"); }
+    if (btn) { btn.classList.add("active"); btn.setAttribute("aria-current", "page"); btn.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }
+    document.querySelectorAll(".bn-btn").forEach((b) => b.classList.remove("active"));
+    for (const [group, ids] of Object.entries(BOTTOM_NAV_GROUPS)) {
+      if (ids.includes(id)) {
+        const bn = document.querySelector(`.bn-btn[data-nav="${group}"]`);
+        if (bn) bn.classList.add("active");
+        break;
+      }
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   window.addEventListener("hashchange", () => {
@@ -64,6 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderModule(id, sub) {
     const panel = document.getElementById(`mod-${id}`);
     switch (id) {
+      case "home": renderHome(panel); break;
       case "programs": renderPrograms(panel); break;
       case "calendar": renderCalendar(panel); break;
       case "volunteers": renderVolunteers(panel); break;
@@ -75,11 +93,96 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ════════════════════════════════════════
+  //  HOME MODULE (intent-first landing)
+  // ════════════════════════════════════════
+  function renderHome(el) {
+    const hour = new Date().getHours();
+    const greeting = hour < 5 ? "You're up late" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    const plan = Store.get("safety_plan");
+    const hasPlan = plan && Object.keys(plan).some((k) => k !== "_saved" && plan[k]);
+    const events = (Store.get("events") || []).filter((e) => e.date >= new Date().toISOString().slice(0, 10))
+      .sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
+    const opps = (Store.get("volunteer_opps") || []).slice(0, 3);
+
+    let html = `<section class="home-hero" aria-labelledby="home-title">
+      <div class="greet">${greeting}</div>
+      <h1 id="home-title">You're welcome here.</h1>
+      <p class="lede">A community home for people navigating mental illness in the St. Louis region — whether that's you, someone you love, or someone you're trying to support.</p>
+    </section>
+
+    <div class="intent-grid">
+      <a class="intent-card support" href="#safetyplan" aria-label="I need support">
+        <div class="intent-ico" aria-hidden="true">&#10084;</div>
+        <div class="intent-title">I need support</div>
+        <div class="intent-body">Crisis lines, a private safety plan you write for yourself, and curated help for the hardest days.</div>
+        <div class="intent-links">
+          <span class="intent-link">${hasPlan ? "Open my safety plan" : "Build a safety plan"} &rarr;</span>
+          <a class="intent-link" href="#resources" onclick="event.stopPropagation()">Find care &rarr;</a>
+        </div>
+      </a>
+      <a class="intent-card helping" href="#programs" aria-label="I'm supporting someone">
+        <div class="intent-ico" aria-hidden="true">&#9775;</div>
+        <div class="intent-title">I'm supporting someone</div>
+        <div class="intent-body">Family programs, support groups, and practical guides for helping a loved one through a mental health crisis.</div>
+        <div class="intent-links">
+          <span class="intent-link">Programs &rarr;</span>
+          <a class="intent-link" href="#resources" onclick="event.stopPropagation()">Resources &rarr;</a>
+        </div>
+      </a>
+      <a class="intent-card involved" href="#calendar" aria-label="I want to get involved">
+        <div class="intent-ico" aria-hidden="true">&#9733;</div>
+        <div class="intent-title">I want to get involved</div>
+        <div class="intent-body">Events, volunteer opportunities, the community board, and Missouri advocacy — plenty of ways to show up.</div>
+        <div class="intent-links">
+          <span class="intent-link">Events &rarr;</span>
+          <a class="intent-link" href="#volunteers" onclick="event.stopPropagation()">Volunteer &rarr;</a>
+          <a class="intent-link" href="#community" onclick="event.stopPropagation()">Community &rarr;</a>
+        </div>
+      </a>
+    </div>
+
+    <div class="home-split">
+      <div class="home-block">
+        <h3>Coming up</h3>
+        <p>Support groups, trainings, and community events in the next couple of weeks.</p>`;
+    if (events.length) {
+      events.forEach((ev) => {
+        const d = new Date(ev.date + "T12:00:00");
+        const dateLabel = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+        html += `<a class="block-link" href="#calendar">${esc(ev.title)} <span style="color:var(--tx-2); font-weight:500"> &middot; ${dateLabel}</span></a>`;
+      });
+      html += `<a class="block-link" href="#calendar" style="color:var(--tx-1)">See full calendar &rarr;</a>`;
+    } else {
+      html += `<a class="block-link" href="#calendar">See the calendar &rarr;</a>`;
+    }
+    html += `</div>
+      <div class="home-block">
+        <h3>Ways to help</h3>
+        <p>Open volunteer needs from NAMI STL programs and community members.</p>`;
+    if (opps.length) {
+      opps.forEach((v) => {
+        html += `<a class="block-link" href="#volunteers">${esc(v.title)} <span style="color:var(--tx-2); font-weight:500"> &middot; ${esc(v.program || "NAMI STL")}</span></a>`;
+      });
+      html += `<a class="block-link" href="#volunteers" style="color:var(--tx-1)">Browse all &rarr;</a>`;
+    } else {
+      html += `<a class="block-link" href="#volunteers">Browse volunteer opportunities &rarr;</a>`;
+    }
+    html += `</div>
+    </div>
+
+    <div class="home-acknowledge">
+      Privacy note — this site runs entirely in your browser. Your safety plan, community posts, and any info you enter stay on this device and are never sent to a server. If you're on a shared computer, use <strong>Quick exit</strong> (top right) or double-tap <kbd>Esc</kbd> to leave this page fast.
+    </div>`;
+
+    el.innerHTML = html;
+  }
+
+  // ════════════════════════════════════════
   //  PROGRAMS MODULE
   // ════════════════════════════════════════
   function renderPrograms(el) {
     let html = `<div class="sec-hdr"><h2>Programs and services</h2>
-      <p>Free education, support, and advocacy programs offered by NAMI St. Louis. Click any program for full details.</p></div>`;
+      <p>Free education, peer support, and advocacy programs — for people living with mental illness, their families, and anyone who wants to learn. Tap any program for details.</p></div>`;
     html += `<div class="program-grid">`;
     PROGRAMS_DATA.forEach((p) => {
       const colorVar = `--tag-${p.color === "red" ? "danger" : p.color === "green" ? "success" : p.color === "amber" ? "warn" : p.color}-tx`;
@@ -135,8 +238,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const today = new Date();
     const events = Store.get("events") || [];
 
-    let html = `<div class="sec-hdr"><h2>Community calendar</h2>
-      <p>Events, meetings, trainings, and activities. Add events to share with the community.</p></div>`;
+    let html = `<div class="sec-hdr"><h2>What's coming up</h2>
+      <p>Support groups, trainings, volunteer shifts, and community gatherings. Anyone can post — share what you're organizing.</p></div>`;
 
     html += `<div class="cal-controls">
       <button class="cal-btn" onclick="calNav(-1)">&larr;</button>
@@ -315,8 +418,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // ════════════════════════════════════════
   function renderVolunteers(el) {
     const opps = Store.get("volunteer_opps") || [];
-    let html = `<div class="sec-hdr"><h2>Volunteer opportunities</h2>
-      <p>Find ways to give your time — or post a need for your program or event.</p></div>`;
+    let html = `<div class="sec-hdr"><h2>Volunteer with us</h2>
+      <p>Real ways to give a few hours — from the walk registration table to peer helpline shifts. Or post a need for your program.</p></div>`;
     html += `<div style="margin-bottom:1.25rem"><button class="cal-btn primary" onclick="openVolunteerForm()">+ Post volunteer need</button></div>`;
 
     if (opps.length === 0) {
@@ -445,8 +548,8 @@ document.addEventListener("DOMContentLoaded", () => {
   //  RESOURCES MODULE
   // ════════════════════════════════════════
   function renderResources(el) {
-    let html = `<div class="sec-hdr"><h2>Mental health resources</h2>
-      <p>Crisis support, treatment providers, housing, legal aid, insurance navigation, and family support — curated for the St. Louis region and Missouri.</p></div>`;
+    let html = `<div class="sec-hdr"><h2>Resources that can help</h2>
+      <p>Crisis lines, providers, housing, legal aid, insurance navigation, and family support. Curated for St. Louis and Missouri — verify details before relying on a specific number.</p></div>`;
 
     Object.keys(RESOURCES_DATA).forEach((key) => {
       const section = RESOURCES_DATA[key];
@@ -472,8 +575,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // ════════════════════════════════════════
   function renderCommunity(el) {
     const posts = Store.get("posts") || [];
-    let html = `<div class="sec-hdr"><h2>Community board</h2>
-      <p>Share announcements, stories, questions, and resources with the NAMI St. Louis community.</p></div>`;
+    let html = `<div class="sec-hdr"><h2>The community board</h2>
+      <p>A quiet place to share — announcements, stories, questions, and resources. You can post under a name or an alias.</p></div>`;
     html += `<div style="margin-bottom:1.25rem"><button class="cal-btn primary" onclick="openPostForm()">+ New post</button></div>`;
 
     if (posts.length === 0) {
@@ -559,8 +662,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const keys = Object.keys(POLICY_DATA);
     const activeKey = keys.includes(activeSub) ? activeSub : keys[0];
 
-    let html = `<div class="sec-hdr"><h2>Missouri mental health policy</h2>
-      <p>Six public policy focus areas — data, risks, sources, and advocacy context.</p></div>`;
+    let html = `<div class="sec-hdr"><h2>Where policy meets people</h2>
+      <p>Six Missouri mental health focus areas — the data, what's at stake, and how to plug in to advocacy.</p></div>`;
 
     // Sub-tabs
     html += `<div class="sub-tabs">`;
@@ -714,8 +817,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderSafetyPlan(el) {
     const plan = Store.get("safety_plan") || {};
-    let html = `<div class="sec-hdr"><h2>My safety plan</h2>
-      <p>A personal plan, based on the Stanley-Brown Safety Planning Intervention, for getting through the hardest moments. Fill in what makes sense — you can always change it.</p></div>
+    let html = `<div class="sec-hdr"><h2>Your safety plan</h2>
+      <p>A personal plan — based on the Stanley-Brown Safety Planning Intervention — for getting through the hardest moments. Write as little or as much as feels useful; you can come back and edit it any time.</p></div>
       <div class="sp-intro"><strong>This stays on your device.</strong> Nothing you type here is sent anywhere. Clearing your browser data will delete it, so use <em>Print / Save as PDF</em> to keep a copy you can share with a trusted person or your clinician.</div>`;
 
     SAFETY_PLAN_SECTIONS.forEach((s, i) => {
@@ -846,6 +949,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const close = overlay.querySelector(".detail-close");
     if (close) close.focus();
   }
+
+  // ── Bottom nav (mobile) ──
+  document.querySelectorAll(".bn-btn").forEach((b) => {
+    b.addEventListener("click", () => showModule(b.dataset.nav));
+  });
 
   // ── Init ──
   const r = getRoute();
