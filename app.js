@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "volunteers", label: "Volunteers" },
     { id: "resources", label: "Resources" },
     { id: "safetyplan", label: "Safety plan" },
+    { id: "coping", label: "Coping tools" },
     { id: "community", label: "Community" },
     { id: "policy", label: "Policy" },
   ];
@@ -69,6 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "volunteers": renderVolunteers(panel); break;
       case "resources": renderResources(panel); break;
       case "safetyplan": renderSafetyPlan(panel); break;
+      case "coping": renderCoping(panel, sub); break;
       case "community": renderCommunity(panel); break;
       case "policy": renderPolicy(panel, sub); break;
     }
@@ -837,14 +839,253 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="help-action-body"><span class="help-action-title">Open my safety plan</span><span class="help-action-sub">The plan you wrote for moments like this</span></span>
           <span aria-hidden="true">&rarr;</span>
         </a>
+        <a class="help-action" href="#coping/breath" id="help-open-breath">
+          <span class="help-action-body"><span class="help-action-title">Try a grounding exercise</span><span class="help-action-sub">Box breathing or 5-4-3-2-1 — when a phone call feels like too much</span></span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
       </div>
       <p class="help-note">Not in crisis but want to talk? NAMI HelpLine — <a href="tel:18009506264">1-800-950-NAMI (6264)</a>, Mon–Fri 9am–9pm CT.</p>
     </div>`;
     overlay.classList.add("open");
     const planLink = document.getElementById("help-open-plan");
     if (planLink) planLink.addEventListener("click", () => overlay.classList.remove("open"));
+    const breathLink = document.getElementById("help-open-breath");
+    if (breathLink) breathLink.addEventListener("click", () => overlay.classList.remove("open"));
     const close = overlay.querySelector(".detail-close");
     if (close) close.focus();
+  }
+
+  // ════════════════════════════════════════
+  //  COPING TOOLS MODULE (grounding / breathing)
+  // ════════════════════════════════════════
+  const COPE_TOOLS = {
+    breath: {
+      title: "Box breathing",
+      desc: "Inhale 4, hold 4, exhale 4, hold 4. Four cycles take about a minute. Slows your heart rate and brings your prefrontal cortex back online.",
+    },
+    fivefour: {
+      title: "5-4-3-2-1 grounding",
+      desc: "Name things you can see, feel, hear, smell, and taste. Anchors you in the room when your mind is spiraling.",
+    },
+    remind: {
+      title: "Things that won't change",
+      desc: "A short list of steady truths to come back to when nothing feels stable.",
+    },
+  };
+
+  function renderCoping(el, sub) {
+    if (sub && COPE_TOOLS[sub]) return renderCopeTool(el, sub);
+
+    let html = `<div class="sec-hdr"><h2>Coping tools</h2>
+      <p>Quick, private exercises for when the feeling is too big to think through. None of these replace real care — they just give you something to do while you ride it out.</p></div>
+      <div class="cope-grid">`;
+    Object.keys(COPE_TOOLS).forEach((k) => {
+      const t = COPE_TOOLS[k];
+      html += `<button type="button" class="cope-card" data-cope="${k}">
+        <div class="cope-ico" aria-hidden="true">${k === "breath" ? "&#9901;" : k === "fivefour" ? "&#9737;" : "&#9775;"}</div>
+        <div class="cope-title">${esc(t.title)}</div>
+        <div class="cope-sub">${esc(t.desc)}</div>
+      </button>`;
+    });
+    html += `</div>
+      <div class="sp-privacy">If any of this feels like too much, stop. Call or text <a href="tel:988" style="color:inherit">988</a>, or tap the <strong>I need help now</strong> button.</div>`;
+    el.innerHTML = html;
+
+    el.querySelectorAll(".cope-card").forEach((c) => {
+      c.addEventListener("click", () => {
+        location.hash = `coping/${c.dataset.cope}`;
+      });
+    });
+  }
+
+  function renderCopeTool(el, key) {
+    const t = COPE_TOOLS[key];
+    let body = "";
+    if (key === "breath") body = `
+      <div class="breath-stage">
+        <div class="breath-label" id="breath-label">Get comfortable</div>
+        <div class="breath-count" id="breath-count">—</div>
+        <div class="breath-circle-wrap"><div class="breath-circle" id="breath-circle"></div></div>
+        <div class="breath-cycle" id="breath-cycle">Tap start when you're ready.</div>
+      </div>
+      <div class="cope-actions">
+        <button class="cal-btn primary" id="breath-start" type="button">Start</button>
+        <button class="cal-btn" id="breath-stop" type="button" disabled>Stop</button>
+      </div>`;
+    else if (key === "fivefour") body = `
+      <div class="five-four-three" id="ff-list"></div>
+      <div class="cope-actions"><button class="cal-btn" id="ff-reset" type="button">Start over</button></div>`;
+    else body = `
+      <div class="ground-list">
+        <div class="ground-item">I am in this room, in this body, in this moment.</div>
+        <div class="ground-item">This feeling is not a prediction. It is weather passing through.</div>
+        <div class="ground-item">I have survived every worst day I've had so far.</div>
+        <div class="ground-item">People I love exist, whether or not I can feel them right now.</div>
+        <div class="ground-item">There is nothing I have to solve in the next five minutes.</div>
+        <div class="ground-item">I am allowed to ask for help. 988 answers any time of day.</div>
+      </div>`;
+
+    el.innerHTML = `<div class="sec-hdr"><h2>${esc(t.title)}</h2></div>
+      <div class="cope-view">
+        <p class="cope-desc">${esc(t.desc)}</p>
+        ${body}
+      </div>
+      <div class="cope-actions"><a class="cal-btn" href="#coping">&larr; All coping tools</a></div>`;
+
+    if (key === "breath") wireBreathing();
+    else if (key === "fivefour") wireFiveFour();
+  }
+
+  function wireBreathing() {
+    const phases = [
+      { label: "Breathe in",  state: "expand",   secs: 4 },
+      { label: "Hold",        state: "hold",     secs: 4 },
+      { label: "Breathe out", state: "contract", secs: 4 },
+      { label: "Hold",        state: "rest",     secs: 4 },
+    ];
+    const circle = document.getElementById("breath-circle");
+    const label = document.getElementById("breath-label");
+    const count = document.getElementById("breath-count");
+    const cycleEl = document.getElementById("breath-cycle");
+    const startBtn = document.getElementById("breath-start");
+    const stopBtn = document.getElementById("breath-stop");
+    let timer = null, cycle = 0, pi = 0, secsLeft = 0;
+
+    function tick() {
+      if (secsLeft <= 0) {
+        pi = (pi + 1) % phases.length;
+        if (pi === 0) { cycle += 1; cycleEl.textContent = `Cycle ${cycle + 1} of 4`; if (cycle >= 4) return stop(true); }
+        const p = phases[pi];
+        circle.classList.remove("expand", "hold", "contract", "rest");
+        circle.classList.add(p.state);
+        label.textContent = p.label;
+        secsLeft = p.secs;
+      }
+      count.textContent = secsLeft;
+      secsLeft -= 1;
+    }
+
+    function start() {
+      cycle = 0; pi = -1; secsLeft = 0;
+      cycleEl.textContent = "Cycle 1 of 4";
+      startBtn.disabled = true; stopBtn.disabled = false;
+      tick();
+      timer = setInterval(tick, 1000);
+    }
+    function stop(finished) {
+      if (timer) clearInterval(timer);
+      timer = null;
+      startBtn.disabled = false; stopBtn.disabled = true;
+      label.textContent = finished ? "Nice work." : "Stopped";
+      count.textContent = finished ? "✓" : "—";
+      cycleEl.textContent = finished ? "That's four cycles. How do you feel?" : "Tap start when you're ready.";
+      circle.classList.remove("expand", "hold", "contract"); circle.classList.add("rest");
+    }
+    startBtn.addEventListener("click", start);
+    stopBtn.addEventListener("click", () => stop(false));
+  }
+
+  function wireFiveFour() {
+    const STEPS = [
+      { count: "5", prompt: "Five things you can see",  hint: "Let your eyes move around slowly. Name them to yourself." },
+      { count: "4", prompt: "Four things you can feel", hint: "Feet on the floor, fabric on your skin, temperature, the weight of your phone." },
+      { count: "3", prompt: "Three things you can hear", hint: "Your breath counts. So does the hum of a fridge or a car outside." },
+      { count: "2", prompt: "Two things you can smell", hint: "Or two you wish you could — coffee, rain, a specific person's shampoo." },
+      { count: "1", prompt: "One thing you can taste",  hint: "Or something you want to taste next. Water counts." },
+    ];
+    const list = document.getElementById("ff-list");
+    const render = () => {
+      const done = JSON.parse(sessionStorage.getItem("nami_ff_done") || "[]");
+      list.innerHTML = STEPS.map((s, i) => `
+        <div class="ff-step${done.includes(i) ? " done" : ""}">
+          <div class="ff-count">${s.count}</div>
+          <div class="ff-prompt">${s.prompt}</div>
+          <div class="ff-hint">${s.hint}</div>
+          <button class="ff-done" type="button" data-step="${i}">${done.includes(i) ? "Done &#10003;" : "Mark done"}</button>
+        </div>`).join("");
+      list.querySelectorAll(".ff-done").forEach((b) => {
+        b.addEventListener("click", () => {
+          const d = JSON.parse(sessionStorage.getItem("nami_ff_done") || "[]");
+          const i = Number(b.dataset.step);
+          const next = d.includes(i) ? d.filter((x) => x !== i) : [...d, i];
+          sessionStorage.setItem("nami_ff_done", JSON.stringify(next));
+          render();
+        });
+      });
+    };
+    render();
+    document.getElementById("ff-reset").addEventListener("click", () => {
+      sessionStorage.removeItem("nami_ff_done");
+      render();
+    });
+  }
+
+  // ════════════════════════════════════════
+  //  DISPLAY / READING PREFERENCES (a11y)
+  // ════════════════════════════════════════
+  const PREF_KEYS = ["text", "contrast", "motion"];
+  function loadPrefs() {
+    const p = Store.get("prefs") || {};
+    PREF_KEYS.forEach((k) => {
+      if (p[k]) document.documentElement.setAttribute(`data-${k}`, p[k]);
+      else document.documentElement.removeAttribute(`data-${k}`);
+    });
+  }
+  function setPref(key, value) {
+    const p = Store.get("prefs") || {};
+    if (!value || value === "default") delete p[key];
+    else p[key] = value;
+    Store.set("prefs", p);
+    loadPrefs();
+  }
+  loadPrefs();
+
+  function openA11yDialog() {
+    let overlay = document.getElementById("detail-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "detail-overlay";
+      overlay.className = "detail-overlay";
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("open"); });
+      document.body.appendChild(overlay);
+    }
+    const current = Store.get("prefs") || {};
+    overlay.innerHTML = `<div class="detail-panel a11y-panel" role="dialog" aria-modal="true" aria-labelledby="a11y-title">
+      <button class="detail-close" aria-label="Close" onclick="document.getElementById('detail-overlay').classList.remove('open')">&times;</button>
+      <h3 id="a11y-title">Display &amp; reading options</h3>
+      <div class="a11y-sub">Your choices stay on this device.</div>
+      ${a11yRow("text",     "Text size",  [["default","Normal"],["large","Large"],["xlarge","XL"]], current.text)}
+      ${a11yRow("contrast", "Contrast",   [["default","Default"],["high","High"]],                    current.contrast)}
+      ${a11yRow("motion",   "Motion",     [["default","Default"],["reduce","Reduced"]],              current.motion)}
+      <div style="margin-top:16px; font-size:12px; color:var(--tx-2); line-height:1.5">Reduced motion turns off the breathing animation and page transitions. High contrast sharpens borders and deepens text color.</div>
+    </div>`;
+    overlay.classList.add("open");
+    overlay.querySelectorAll(".a11y-choice").forEach((b) => {
+      b.addEventListener("click", () => {
+        setPref(b.dataset.pref, b.dataset.value);
+        overlay.querySelectorAll(`.a11y-choice[data-pref="${b.dataset.pref}"]`).forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+      });
+    });
+  }
+  function a11yRow(pref, label, choices, value) {
+    const cur = value || "default";
+    return `<div class="a11y-row">
+      <div><div class="a11y-row-label">${label}</div></div>
+      <div class="a11y-choices" role="group" aria-label="${label}">${choices.map(([v, l]) =>
+        `<button type="button" class="a11y-choice" data-pref="${pref}" data-value="${v}" aria-pressed="${v === cur ? "true" : "false"}">${l}</button>`
+      ).join("")}</div>
+    </div>`;
+  }
+  const a11yBtn = document.getElementById("a11y-open");
+  if (a11yBtn) a11yBtn.addEventListener("click", openA11yDialog);
+
+  // ════════════════════════════════════════
+  //  SERVICE WORKER (offline)
+  // ════════════════════════════════════════
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
   }
 
   // ── Init ──
