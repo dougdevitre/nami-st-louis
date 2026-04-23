@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "calendar", label: "Calendar" },
     { id: "volunteers", label: "Volunteers" },
     { id: "resources", label: "Resources" },
+    { id: "safetyplan", label: "Safety plan" },
     { id: "community", label: "Community" },
     { id: "policy", label: "Policy" },
   ];
@@ -42,14 +43,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function showModule(id, sub) {
+    const panel = document.getElementById(`mod-${id}`);
+    if (!panel) return;
     if (!sub) location.hash = id;
     document.querySelectorAll(".module").forEach((m) => m.classList.remove("visible"));
     document.querySelectorAll(".mod-btn").forEach((b) => b.classList.remove("active"));
-    const panel = document.getElementById(`mod-${id}`);
-    if (panel) {
-      panel.classList.add("visible");
-      renderModule(id, sub);
-    }
+    panel.classList.add("visible");
+    renderModule(id, sub);
     const btn = document.querySelector(`.mod-btn[data-mod="${id}"]`);
     if (btn) btn.classList.add("active");
   }
@@ -67,6 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "calendar": renderCalendar(panel); break;
       case "volunteers": renderVolunteers(panel); break;
       case "resources": renderResources(panel); break;
+      case "safetyplan": renderSafetyPlan(panel); break;
       case "community": renderCommunity(panel); break;
       case "policy": renderPolicy(panel, sub); break;
     }
@@ -693,6 +694,149 @@ document.addEventListener("DOMContentLoaded", () => {
     t.classList.add("show");
     clearTimeout(t._timer);
     t._timer = setTimeout(() => t.classList.remove("show"), 2500);
+  }
+
+  // ════════════════════════════════════════
+  //  SAFETY PLAN MODULE (Stanley-Brown-style)
+  // ════════════════════════════════════════
+  const SAFETY_PLAN_SECTIONS = [
+    { key: "reasons",  label: "My reasons for living",              help: "People, goals, things I care about — what gives my life meaning. Read this first if things get dark.", placeholder: "My kids. Finishing my degree. My dog Rosie. Seeing my sister again." },
+    { key: "warnings", label: "Warning signs",                      help: "Thoughts, moods, situations, or behaviors that tell me a crisis may be building.",                      placeholder: "Thoughts like 'nobody would miss me'. Not sleeping. Isolating. Drinking more." },
+    { key: "coping",   label: "Things I can do on my own",          help: "Internal coping strategies — things I can do without contacting anyone else.",                          placeholder: "Walk around the block. Cold shower. 5 minutes of box breathing. Play the 'safe' playlist." },
+    { key: "distract", label: "People and places that distract me", help: "Social settings or people who take my mind off the crisis — they don't need to know what's happening.",  placeholder: "Kaldi's Coffee. Call my friend Sam. The library. Sunday service." },
+    { key: "support",  label: "People I can ask for help",          help: "People I trust enough to tell when I'm struggling. Include their phone numbers.",                         placeholder: "Mom — 314-555-0110. My sponsor Dana — 314-555-0188." },
+    { key: "pros",     label: "Professionals and agencies",         help: "My therapist, psychiatrist, clinic, and crisis lines — with phone numbers and hours.",                 placeholder: "Dr. Patel — 314-555-0133 (M–F 9–5). 988. BHR — 314-469-6644." },
+    { key: "safe",     label: "Making my environment safer",        help: "Steps to reduce access to things I could use to hurt myself — who holds them, where they go.",         placeholder: "Give pills to my partner. Store firearm at Dad's. Remove alcohol from the kitchen." },
+  ];
+
+  function renderSafetyPlan(el) {
+    const plan = Store.get("safety_plan") || {};
+    let html = `<div class="sec-hdr"><h2>My safety plan</h2>
+      <p>A personal plan, based on the Stanley-Brown Safety Planning Intervention, for getting through the hardest moments. Fill in what makes sense — you can always change it.</p></div>
+      <div class="sp-intro"><strong>This stays on your device.</strong> Nothing you type here is sent anywhere. Clearing your browser data will delete it, so use <em>Print / Save as PDF</em> to keep a copy you can share with a trusted person or your clinician.</div>`;
+
+    SAFETY_PLAN_SECTIONS.forEach((s, i) => {
+      const val = esc(plan[s.key] || "");
+      html += `<div class="sp-section">
+        <div class="sp-step">Step ${i + 1}</div>
+        <div class="sp-label"><label for="sp-${s.key}">${s.label}</label></div>
+        <div class="sp-help">${s.help}</div>
+        <textarea class="sp-textarea" id="sp-${s.key}" data-sp="${s.key}" placeholder="${esc(s.placeholder)}">${val}</textarea>
+      </div>`;
+    });
+
+    const savedLabel = plan._saved ? "Last saved " + timeAgo(plan._saved) : "Not yet saved";
+    html += `<div class="sp-actions">
+      <button class="cal-btn primary" id="sp-save" type="button">Save plan</button>
+      <button class="cal-btn" id="sp-print" type="button">Print / Save as PDF</button>
+      <button class="cal-btn" id="sp-clear" type="button" style="color:var(--tag-danger-tx)">Clear plan</button>
+      <span class="sp-status" id="sp-status">${savedLabel}</span>
+    </div>
+    <div class="sp-privacy">If you're on a shared or unsafe device, tap <strong>Quick exit</strong> (top right) — or double-tap <kbd>Esc</kbd> — to leave this page fast.</div>`;
+
+    el.innerHTML = html;
+
+    el.querySelectorAll(".sp-textarea").forEach((ta) => {
+      ta.addEventListener("blur", saveSafetyPlan);
+    });
+    document.getElementById("sp-save").addEventListener("click", () => {
+      saveSafetyPlan();
+      toast("Safety plan saved on this device.");
+    });
+    document.getElementById("sp-print").addEventListener("click", () => {
+      saveSafetyPlan();
+      window.print();
+    });
+    document.getElementById("sp-clear").addEventListener("click", () => {
+      if (!confirm("Clear your entire safety plan from this device? This can't be undone.")) return;
+      Store.delete("safety_plan");
+      renderSafetyPlan(el);
+      toast("Safety plan cleared.");
+    });
+  }
+
+  function saveSafetyPlan() {
+    const plan = { _saved: new Date().toISOString() };
+    document.querySelectorAll(".sp-textarea").forEach((ta) => {
+      plan[ta.dataset.sp] = ta.value;
+    });
+    const ok = Store.set("safety_plan", plan);
+    const s = document.getElementById("sp-status");
+    if (s) s.textContent = ok ? "Last saved just now" : "Couldn't save — browser storage may be full";
+  }
+
+  // ════════════════════════════════════════
+  //  QUICK EXIT (leave site fast)
+  // ════════════════════════════════════════
+  (function wireQuickExit() {
+    const NEUTRAL = "https://www.google.com/search?q=weather";
+    function bail() {
+      try { history.replaceState(null, "", "/"); } catch (_) {}
+      location.replace(NEUTRAL);
+    }
+    const btn = document.getElementById("quick-exit");
+    if (btn) btn.addEventListener("click", bail);
+    let lastEsc = 0;
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const now = Date.now();
+      if (now - lastEsc < 500) bail();
+      lastEsc = now;
+    });
+  })();
+
+  // ════════════════════════════════════════
+  //  "I NEED HELP NOW" FLOATING ACTION
+  // ════════════════════════════════════════
+  const helpFab = document.getElementById("help-fab");
+  if (helpFab) helpFab.addEventListener("click", openHelpOverlay);
+
+  function openHelpOverlay() {
+    let overlay = document.getElementById("detail-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "detail-overlay";
+      overlay.className = "detail-overlay";
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("open"); });
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = `<div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <button class="detail-close" aria-label="Close" onclick="document.getElementById('detail-overlay').classList.remove('open')">&times;</button>
+      <h3 id="help-title" style="font-size:19px; font-weight:600; margin-bottom:6px">Get help right now</h3>
+      <p style="font-size:13px; color:var(--tx-1); line-height:1.55; margin-bottom:4px">You don't have to explain yourself. Pick whatever feels right — all of these are free and confidential.</p>
+      <div class="help-actions">
+        <a class="help-action urgent" href="tel:988">
+          <span class="help-action-body"><span class="help-action-title">Call 988</span><span class="help-action-sub">Suicide &amp; Crisis Lifeline — 24/7</span></span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+        <a class="help-action urgent" href="sms:988">
+          <span class="help-action-body"><span class="help-action-title">Text 988</span><span class="help-action-sub">If texting feels easier than talking</span></span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+        <a class="help-action" href="sms:741741?&body=HOME">
+          <span class="help-action-body"><span class="help-action-title">Text HOME to 741741</span><span class="help-action-sub">Crisis Text Line — 24/7, any crisis</span></span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+        <a class="help-action" href="tel:3144696644">
+          <span class="help-action-body"><span class="help-action-title">Call 314-469-6644</span><span class="help-action-sub">Behavioral Health Response — St. Louis mobile crisis (not police-led)</span></span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+        <a class="help-action urgent" href="tel:911">
+          <span class="help-action-body"><span class="help-action-title">Call 911</span><span class="help-action-sub">Only if someone's life is in immediate danger</span></span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+        <a class="help-action" href="#safetyplan" id="help-open-plan">
+          <span class="help-action-body"><span class="help-action-title">Open my safety plan</span><span class="help-action-sub">The plan you wrote for moments like this</span></span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+      </div>
+      <p class="help-note">Not in crisis but want to talk? NAMI HelpLine — <a href="tel:18009506264">1-800-950-NAMI (6264)</a>, Mon–Fri 9am–9pm CT.</p>
+    </div>`;
+    overlay.classList.add("open");
+    const planLink = document.getElementById("help-open-plan");
+    if (planLink) planLink.addEventListener("click", () => overlay.classList.remove("open"));
+    const close = overlay.querySelector(".detail-close");
+    if (close) close.focus();
   }
 
   // ── Init ──
