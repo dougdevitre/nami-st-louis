@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NAMI St. Louis">
+  <rect width="512" height="512" rx="96" fill="#1B5E5A"/>
+  <path d="M256 376c-88-44-160-96-160-180 0-46 38-78 78-78 34 0 58 18 82 50 24-32 48-50 82-50 40 0 78 32 78 78 0 84-72 136-160 180z" fill="#FAF7F0"/>
+  <text x="256" y="460" text-anchor="middle" font-family="system-ui, sans-serif" font-size="60" font-weight="700" fill="#FAF7F0" letter-spacing="2">NAMI</text>
+</svg>
