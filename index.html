@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NAMI St. Louis — Community Mental Health Hub</title>
+  <meta name="description" content="Community platform for NAMI St. Louis — programs, shared calendar, volunteer coordination, crisis resources, policy advocacy, and community discussion." />
+  <meta name="theme-color" content="#1B365D" />
+  <meta property="og:title" content="NAMI St. Louis — Community Mental Health Hub" />
+  <meta property="og:description" content="Programs, events, volunteer opportunities, crisis resources, and advocacy tools for the NAMI St. Louis community." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="org">NAMI St. Louis</div>
+    <h1>Community Mental Health Hub</h1>
+    <p class="sub">Programs, events, volunteers, resources, and advocacy — together.</p>
+  </header>
+
+  <div class="crisis-strip">
+    In crisis? Call or text <a href="tel:988"><strong>988</strong></a> &mdash; free, confidential, 24/7.
+    &nbsp;|&nbsp; St. Louis mobile crisis: <a href="tel:3144696644"><strong>314-469-6644</strong></a>
+  </div>
+
+  <main class="container">
+    <nav class="module-nav" id="module-nav" role="tablist" aria-label="Platform modules"></nav>
+    <div id="modules"></div>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      Built for <a href="https://namistl.org" target="_blank" rel="noopener">NAMI St. Louis</a>.<br />
+      Data sourced from HRSA, BJS, VA, KFF, SAMHSA, Missouri legislature, KCUR.<br /><br />
+      If you or someone you know is in crisis, call or text <strong>988</strong>.
+    </p>
+  </footer>
+
+  <script src="src/storage.js"></script>
+  <script src="src/policy-data.js"></script>
+  <script src="src/programs-data.js"></script>
+  <script src="src/resources-data.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
