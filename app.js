@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "safetyplan", label: "Safety plan" },
     { id: "coping", label: "Coping tools" },
     { id: "checkin", label: "Check-in" },
+    { id: "supporter", label: "Helping someone" },
     { id: "community", label: "Community" },
     { id: "policy", label: "Policy" },
     { id: "advocacy", label: "Advocacy" },
@@ -74,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "safetyplan": renderSafetyPlan(panel, sub); break;
       case "coping": renderCoping(panel, sub); break;
       case "checkin": renderCheckin(panel); break;
+      case "supporter": renderSupporter(panel); break;
       case "community": renderCommunity(panel); break;
       case "policy": renderPolicy(panel, sub); break;
       case "advocacy": renderAdvocacy(panel); break;
@@ -907,6 +909,10 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="help-action-body"><span class="help-action-title">Try a grounding exercise</span><span class="help-action-sub">Box breathing or 5-4-3-2-1 — when a phone call feels like too much</span></span>
           <span aria-hidden="true">&rarr;</span>
         </a>
+        <a class="help-action" href="#supporter" id="help-open-sup">
+          <span class="help-action-body"><span class="help-action-title">I'm helping someone else</span><span class="help-action-sub">What to say, what to do, 988 vs. 911, how to request mobile crisis</span></span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
       </div>
       <p class="help-note">Not in crisis but want to talk? NAMI HelpLine — <a href="tel:18009506264">1-800-950-NAMI (6264)</a>, Mon–Fri 9am–9pm CT.</p>
     </div>`;
@@ -915,6 +921,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (planLink) planLink.addEventListener("click", () => overlay.classList.remove("open"));
     const breathLink = document.getElementById("help-open-breath");
     if (breathLink) breathLink.addEventListener("click", () => overlay.classList.remove("open"));
+    const supLink = document.getElementById("help-open-sup");
+    if (supLink) supLink.addEventListener("click", () => overlay.classList.remove("open"));
     const close = overlay.querySelector(".detail-close");
     if (close) close.focus();
   }
@@ -1632,6 +1640,159 @@ Early support prevents crises later. Please invest in it.
     const panel = document.getElementById("mod-advocacy");
     if (panel && panel.classList.contains("visible")) renderAdvocacy(panel);
   });
+
+  // ════════════════════════════════════════
+  //  SUPPORTER GUIDE (helping someone in crisis)
+  // ════════════════════════════════════════
+  function renderSupporter(el) {
+    el.innerHTML = `
+    <div class="sec-hdr"><h2>Helping someone in crisis</h2>
+      <p>If you're reading this, you're already doing something right. Here's what to do and what to step back from — written for families, friends, and anyone standing with a person in a mental health crisis.</p></div>
+
+    <div class="sp-intro">Everything below is guidance, not a substitute for crisis professionals. When in doubt, <a href="tel:988" style="color:inherit">call or text 988</a> — you don't have to be the person in crisis to call, and the line is for you too.</div>
+
+    <div class="sup-jump">
+      <a href="#sup-triage">Which number do I call?</a>
+      <a href="#sup-suicide">They said they want to die</a>
+      <a href="#sup-mobile">Mobile crisis vs. police</a>
+      <a href="#sup-say">What to say / not say</a>
+      <a href="#sup-after">After the crisis</a>
+      <a href="#sup-self">Take care of yourself</a>
+    </div>
+
+    <div class="sup-section" id="sup-triage">
+      <h3>Which number do I call?</h3>
+      <p class="sup-lede">Three different lines for three different situations. You can always start with 988 and be redirected.</p>
+      <div class="sup-triage">
+        <div class="sup-triage-card call988">
+          <div class="sup-triage-num"><a href="tel:988">988</a></div>
+          <div class="sup-triage-tag">Call or text, 24/7</div>
+          <ul>
+            <li>They're expressing suicidal thoughts or feelings</li>
+            <li>They're overwhelmed but safe</li>
+            <li>You, the supporter, need to talk to someone</li>
+            <li>You're not sure what to do next</li>
+          </ul>
+          <div class="sup-triage-note">Free, confidential. Text 988 or text <strong>HOME to 741741</strong> if talking feels too hard.</div>
+        </div>
+        <div class="sup-triage-card callbhr">
+          <div class="sup-triage-num"><a href="tel:3144696644">314-469-6644</a></div>
+          <div class="sup-triage-tag">BHR — St. Louis mobile crisis</div>
+          <ul>
+            <li>They're in active crisis and need in-person help</li>
+            <li>Symptoms are escalating but not immediately life-threatening</li>
+            <li>You want de-escalation and evaluation without police</li>
+            <li>They'd benefit from a warm handoff to care</li>
+          </ul>
+          <div class="sup-triage-note">Behavioral Health Response sends trained clinicians. Serves the STL metro area.</div>
+        </div>
+        <div class="sup-triage-card call911">
+          <div class="sup-triage-num"><a href="tel:911">911</a></div>
+          <div class="sup-triage-tag">Only when life is in immediate danger</div>
+          <ul>
+            <li>They've attempted or are about to attempt suicide</li>
+            <li>They're seriously injured</li>
+            <li>A weapon is involved</li>
+            <li>Someone's in immediate physical danger</li>
+          </ul>
+          <div class="sup-triage-note"><strong>Ask explicitly</strong> for a CIT-trained officer or mental-health response — and stay on the line to describe the situation. See the mobile-crisis section below.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sup-section" id="sup-suicide">
+      <h3>Someone just told me they want to die</h3>
+      <p class="sup-lede">The single most important thing is that you're there. You're not expected to be a clinician.</p>
+      <ol class="sup-steps">
+        <li><strong>Take them seriously.</strong> Don't brush it off, don't look for the "real" meaning, don't argue with how they feel. Even if you're not sure they mean it literally, respond as if they do.</li>
+        <li><strong>Ask directly.</strong> "Are you thinking about killing yourself?" Asking does not plant the idea — decades of research shows it reduces risk because the person feels seen. Use plain, direct words.</li>
+        <li><strong>Listen more than you talk.</strong> Let silence happen. You don't have to fix anything in this conversation.</li>
+        <li><strong>Don't leave them alone if you can help it.</strong> Stay physically present, or on the phone, or on video. If you can't be there, connect them with someone who can.</li>
+        <li><strong>Reduce access to means.</strong> If there's a firearm, medication stockpile, or anything specific they've mentioned, ask if they'll let you move it somewhere else — a relative's house, a locked box, a pharmacy take-back. Means reduction is one of the most effective suicide-prevention steps that exists.</li>
+        <li><strong>Call 988 together.</strong> Offer to dial it. If they say yes, put it on speaker. If they say no, ask if you can call for guidance on their behalf — you can.</li>
+        <li><strong>Call 911 only if life is in immediate danger</strong> (attempt in progress, weapon being used, serious injury). Tell dispatch "this is a mental health emergency" and ask for a CIT officer.</li>
+        <li><strong>Make a plan for the next 24 hours.</strong> Who will be with them tonight? Who will check in tomorrow morning? Write it down.</li>
+      </ol>
+      <p class="sup-footnote">Don't promise you won't tell anyone. Their safety is more important than that promise, and they usually understand that when they've calmed down.</p>
+    </div>
+
+    <div class="sup-section" id="sup-mobile">
+      <h3>How to get mobile crisis instead of police</h3>
+      <p class="sup-lede">Police aren't always the right first responder to a mental-health crisis. In St. Louis, you usually have better options.</p>
+      <ol class="sup-steps">
+        <li><strong>If the situation allows any wait at all</strong>, call BHR first at <a href="tel:3144696644">314-469-6644</a>. Mobile clinicians are trained for this; police are trained for a different job.</li>
+        <li><strong>When you call, tell them plainly:</strong> "I need a mobile crisis response for a mental health emergency. No weapons. No immediate danger to life. I'm the [relationship] of the person." Give the address.</li>
+        <li><strong>If you do have to call 911</strong> — because there's a weapon, an attempt in progress, or a risk to others — the words you use matter:
+          <ul>
+            <li>"This is a mental health emergency, not a crime."</li>
+            <li>"Please send a CIT-trained officer or co-responder team."</li>
+            <li>"The person is not violent. Lights and sirens will make things worse."</li>
+            <li>"Please don't draw weapons. They are [holding / unarmed / in their room]."</li>
+          </ul>
+        </li>
+        <li><strong>Stay on the line</strong> to keep updating dispatch. You're giving officers context they need.</li>
+        <li><strong>Meet responders outside</strong> if safe. Brief them calmly before they enter. Tell them what de-escalates this person, what their triggers are, and what their diagnoses are if you know them.</li>
+        <li><strong>Know your rights about the 96-hour hold.</strong> In Missouri (RSMo 632.305), a person can be held up to 96 hours for evaluation if a clinician believes they're a danger to self or others. They keep their civil rights throughout — including the right to a hearing, a lawyer, and to refuse most non-emergency treatment.</li>
+      </ol>
+    </div>
+
+    <div class="sup-section" id="sup-say">
+      <h3>What to say / not say</h3>
+      <div class="sup-saysplit">
+        <div class="sup-saycol do">
+          <div class="sup-saycol-hd">Helpful</div>
+          <ul>
+            <li>"I'm so glad you told me."</li>
+            <li>"You don't have to explain it perfectly."</li>
+            <li>"I want to understand what this is like for you."</li>
+            <li>"You're not alone in this. I'm staying."</li>
+            <li>"Let's figure out the next hour together."</li>
+            <li>"Have you been thinking about suicide?" (direct, calm)</li>
+            <li>"What would help most right now?"</li>
+            <li>"You don't have to feel better to be worth staying."</li>
+          </ul>
+        </div>
+        <div class="sup-saycol dont">
+          <div class="sup-saycol-hd">Step back from</div>
+          <ul>
+            <li>"It could be worse / other people have it harder."</li>
+            <li>"You have so much to live for."</li>
+            <li>"Just think positive / don't dwell on it."</li>
+            <li>"Promise me you won't do anything."</li>
+            <li>"I won't tell anyone, I promise."</li>
+            <li>Arguing about whether the feelings are rational.</li>
+            <li>Making it about you: "How could you do this to me?"</li>
+            <li>Trying to talk them out of hopelessness with logic.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="sup-footnote">Everything on the left side is doing one thing: telling the person they're a human being worth being with. That is the job.</p>
+    </div>
+
+    <div class="sup-section" id="sup-after">
+      <h3>After the crisis</h3>
+      <p class="sup-lede">The hours and days after an acute crisis are where relapse prevention lives.</p>
+      <ol class="sup-steps">
+        <li><strong>Follow up within 24 hours.</strong> A text, a drive-by, a meal. Research on "caring contacts" shows that simple follow-ups reduce re-attempt rates.</li>
+        <li><strong>Help them build a safety plan</strong> (we have a builder at <a href="#safetyplan">Safety plan</a>). Doing it together is a connecting act and a clinical intervention at once.</li>
+        <li><strong>Encourage — don't push — professional care.</strong> Offer to help find a therapist, go to a first appointment, or call to schedule. People in recovery tell us the scheduling step is often the hardest.</li>
+        <li><strong>Pay attention to the anniversary.</strong> The date of an attempt or a loss can be a risk window years later. Reach out proactively.</li>
+        <li><strong>Avoid "the talk."</strong> Don't schedule a heavy sit-down every time — ongoing small check-ins are more sustainable and less shame-inducing.</li>
+      </ol>
+    </div>
+
+    <div class="sup-section" id="sup-self">
+      <h3>Take care of yourself</h3>
+      <p class="sup-lede">You are not responsible for keeping another person alive through willpower. You can only be a consistent, caring presence — which is a lot.</p>
+      <ul class="sup-selflist">
+        <li><strong>Join a family support group.</strong> NAMI St. Louis runs free ones. <a href="#programs">See programs</a>.</li>
+        <li><strong>Take NAMI Family-to-Family.</strong> Eight free sessions taught by family members who've been where you are. <a href="#programs">Programs</a>.</li>
+        <li><strong>Call the NAMI HelpLine</strong> — <a href="tel:18009506264">1-800-950-NAMI (6264)</a>, Mon–Fri 9am–9pm CT. It's for supporters too.</li>
+        <li><strong>Notice your own warning signs.</strong> Caregiving without care goes bad. Sleep, eat, move, tell your own doctor, keep your own therapist.</li>
+        <li><strong>Set boundaries you can keep.</strong> "I love you and I can't drive over at 3am anymore — but I'll call every morning at 8." A kept small promise beats a broken big one.</li>
+      </ul>
+    </div>`;
+  }
 
   // ════════════════════════════════════════
   //  SERVICE WORKER (offline)
