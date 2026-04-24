@@ -408,6 +408,40 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   scroll-behavior: auto !important;
 }
 
+/* ── Story bank ── */
+.story-help { background: var(--bg-0); border: 1px solid var(--bd-0); border-radius: var(--radius-md); padding: 0; margin-bottom: 10px; overflow: hidden; }
+.story-help > summary { list-style: none; cursor: pointer; padding: 12px 16px; font-size: 13.5px; font-weight: 600; color: var(--tx-0); display: flex; justify-content: space-between; align-items: center; }
+.story-help > summary::-webkit-details-marker { display: none; }
+.story-help > summary::after { content: "▾"; color: var(--tx-2); transition: transform 0.15s; }
+.story-help[open] > summary::after { transform: rotate(180deg); }
+.story-help ul { list-style: none; padding: 0 16px 14px; margin: 0; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--bd-0); }
+.story-help ul li { font-size: 13px; color: var(--tx-1); line-height: 1.55; padding: 8px 0 0 14px; position: relative; }
+.story-help ul li::before { content: "›"; position: absolute; left: 0; top: 8px; color: var(--accent-text); font-weight: 700; }
+
+.story-form { background: var(--bg-0); border: 1px solid var(--bd-0); border-radius: var(--radius-lg); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 1rem; }
+.story-topic-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.story-form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.story-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+
+.story-list { display: flex; flex-direction: column; gap: 10px; }
+.story-card { background: var(--bg-0); border: 1px solid var(--bd-0); border-radius: var(--radius-lg); padding: 16px 18px; }
+.story-card-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.story-card-headings { flex: 1; min-width: 0; }
+.story-card-title { font-size: 15px; font-weight: 600; color: var(--tx-0); line-height: 1.35; }
+.story-card-title.story-untitled { color: var(--tx-2); font-weight: 500; font-style: italic; }
+.story-card-meta { font-size: 11.5px; color: var(--tx-2); margin-top: 2px; }
+.story-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.story-card-body { font-size: 13.5px; color: var(--tx-1); line-height: 1.6; margin-top: 10px; white-space: pre-wrap; }
+.story-card .ci-entry-tags { margin-top: 10px; }
+
+/* Picker overlay list */
+.story-pick-list { display: flex; flex-direction: column; gap: 6px; max-height: 55vh; overflow-y: auto; }
+.story-pick { display: flex; flex-direction: column; gap: 4px; padding: 11px 14px; background: var(--bg-1); border: 1px solid transparent; border-radius: var(--radius-md); font-family: var(--font); color: var(--tx-0); text-align: left; cursor: pointer; }
+.story-pick:hover, .story-pick:focus-visible { background: var(--accent-soft); border-color: var(--accent-text); outline: none; }
+.story-pick-title { font-size: 14px; font-weight: 600; color: var(--tx-0); }
+.story-pick-body { font-size: 12.5px; color: var(--tx-1); line-height: 1.55; }
+
 /* ── Search trigger (inline) ── */
 .search-trigger { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; margin: 0.75rem 0 0.25rem; background: var(--bg-0); border: 1px solid var(--bd-0); border-radius: var(--radius-pill); font-family: var(--font); font-size: 14px; color: var(--tx-2); cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s; }
 .search-trigger:hover, .search-trigger:focus-visible { background: var(--bg-0); border-color: var(--bd-1); color: var(--tx-1); outline: none; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
