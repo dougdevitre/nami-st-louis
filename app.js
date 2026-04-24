@@ -181,10 +181,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
-    const events = Store.get("events") || [];
+    const cached = (window.NamiData && NamiData.events.cached()) || Store.get("events") || [];
+    const events = cached.filter((e) => e.status !== "pending" && e.status !== "rejected");
+
+    const sharedNote = window.NamiData && NamiData.mode === "supabase"
+      ? "Posts are shared across devices and appear after a moderator reviews them."
+      : "Posts on this device only — connect Supabase to share across devices.";
 
     let html = `<div class="sec-hdr"><h2>Community calendar</h2>
-      <p>Events, meetings, trainings, and activities. Add events to share with the community.</p></div>`;
+      <p>Events, meetings, trainings, and activities. ${sharedNote} Add an event to share it.</p></div>`;
+
+    // Moderator-only pending-events review
+    if (window.NamiData && NamiData.mode === "supabase" && NamiData.auth.isModerator()) {
+      html += `<div class="cal-pending"><div class="cal-pending-hdr">Pending events awaiting review</div><div class="cal-pending-list" id="cal-pending-list"><div class="cal-pending-empty">Loading…</div></div></div>`;
+    }
 
     html += `<div class="cal-controls">
       <button class="cal-btn" onclick="calNav(-1)">&larr;</button>
@@ -255,6 +265,37 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     el.innerHTML = html;
+
+    if (window.NamiData && NamiData.mode === "supabase" && NamiData.auth.isModerator()) {
+      NamiData.events.listPending().then((pending) => {
+        const list = document.getElementById("cal-pending-list");
+        if (!list) return;
+        if (!pending.length) { list.innerHTML = `<div class="cal-pending-empty">Nothing pending.</div>`; return; }
+        list.innerHTML = pending.map((ev) => {
+          const d = new Date(ev.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          return `<div class="cal-pending-item">
+            <div>
+              <div class="cal-pending-title">${esc(ev.title)}</div>
+              <div class="cal-pending-meta">${d}${ev.time ? " at " + esc(ev.time) : ""} &middot; ${esc(ev.type)} &middot; ${esc(ev.author || "Unknown")}</div>
+              ${ev.description ? `<div class="cal-pending-body">${esc(ev.description)}</div>` : ""}
+            </div>
+            <div class="cal-pending-actions">
+              <button class="cal-btn primary" data-approve="${esc(ev.id)}">Approve</button>
+              <button class="cal-btn" data-reject="${esc(ev.id)}" style="color:var(--tag-danger-tx)">Reject</button>
+            </div>
+          </div>`;
+        }).join("");
+        list.querySelectorAll("[data-approve]").forEach((b) => b.addEventListener("click", async () => {
+          try { await NamiData.events.approve(b.dataset.approve); toast("Event approved."); }
+          catch (e) { toast(e.message || "Couldn't approve."); }
+        }));
+        list.querySelectorAll("[data-reject]").forEach((b) => b.addEventListener("click", async () => {
+          if (!confirm("Reject (delete) this pending event?")) return;
+          try { await NamiData.events.deleteById(b.dataset.reject); toast("Event removed."); }
+          catch (e) { toast(e.message || "Couldn't reject."); }
+        }));
+      });
+    }
   }
 
   window.calNav = function (dir) {
@@ -299,12 +340,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => document.getElementById("ev-title").focus(), 100);
   };
 
-  window.saveEvent = function () {
+  window.saveEvent = async function () {
     const title = document.getElementById("ev-title").value.trim();
     const date = document.getElementById("ev-date").value;
     if (!title || !date) { toast("Please enter a title and date."); return; }
     const ev = {
-      id: Store.uid(),
       title,
       date,
       time: document.getElementById("ev-time").value || "",
@@ -312,16 +352,18 @@ document.addEventListener("DOMContentLoaded", () => {
       location: document.getElementById("ev-location").value.trim(),
       description: document.getElementById("ev-desc").value.trim(),
       author: document.getElementById("ev-author").value.trim() || "Community member",
-      created: new Date().toISOString(),
     };
-    Store.push("events", ev);
-    document.getElementById("form-overlay").classList.remove("open");
-    renderCalendar(document.getElementById("mod-calendar"));
-    toast("Event added to the community calendar.");
+    try {
+      await NamiData.events.create(ev);
+      document.getElementById("form-overlay").classList.remove("open");
+      toast(NamiData.mode === "supabase" ? "Event submitted — a moderator will review it shortly." : "Event added to the community calendar.");
+    } catch (e) {
+      toast(e && e.message ? e.message : "Couldn't save event.");
+    }
   };
 
   window.showEventDetail = function (id) {
-    const events = Store.get("events") || [];
+    const events = (window.NamiData && NamiData.events.cached()) || Store.get("events") || [];
     const ev = events.find((e) => e.id === id);
     if (!ev) return;
     let overlay = document.getElementById("detail-overlay");
@@ -351,11 +393,14 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.classList.add("open");
   };
 
-  window.deleteEvent = function (id) {
-    Store.removeById("events", id);
-    document.getElementById("detail-overlay").classList.remove("open");
-    renderCalendar(document.getElementById("mod-calendar"));
-    toast("Event removed.");
+  window.deleteEvent = async function (id) {
+    try {
+      await NamiData.events.deleteById(id);
+      document.getElementById("detail-overlay").classList.remove("open");
+      toast("Event removed.");
+    } catch (e) {
+      toast(e && e.message ? e.message : "Couldn't remove event.");
+    }
   };
 
   // ════════════════════════════════════════
@@ -2950,6 +2995,79 @@ Sincerely,
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+
+  // ════════════════════════════════════════
+  //  DATA LAYER HOOKS (re-render + auth UI)
+  // ════════════════════════════════════════
+  if (window.NamiData) {
+    NamiData.events.onChange(() => {
+      const panel = document.getElementById("mod-calendar");
+      if (panel && panel.classList.contains("visible")) renderCalendar(panel);
+    });
+    NamiData.auth.onChange(renderAuthLink);
+    renderAuthLink();
+  }
+
+  function renderAuthLink() {
+    if (!window.NamiData || NamiData.mode !== "supabase") return;
+    let host = document.getElementById("auth-link-host");
+    if (!host) {
+      const footerP = document.querySelector(".site-footer p");
+      if (!footerP) return;
+      host = document.createElement("span");
+      host.id = "auth-link-host";
+      host.className = "auth-link-host";
+      footerP.appendChild(document.createElement("br"));
+      footerP.appendChild(host);
+    }
+    const user = NamiData.auth.user();
+    if (user) {
+      const isMod = NamiData.auth.isModerator();
+      host.innerHTML = `Signed in as <strong>${esc(user.email || "you")}</strong>${isMod ? " &middot; <em>moderator</em>" : ""} &middot; <button type="button" class="footer-link-btn" id="auth-signout">Sign out</button>`;
+      document.getElementById("auth-signout").addEventListener("click", async () => {
+        try { await NamiData.auth.signOut(); toast("Signed out."); }
+        catch (e) { toast(e.message || "Sign-out failed."); }
+      });
+    } else {
+      host.innerHTML = `<button type="button" class="footer-link-btn" id="auth-signin">Sign in to post events</button>`;
+      document.getElementById("auth-signin").addEventListener("click", openSignInDialog);
+    }
+  }
+
+  function openSignInDialog() {
+    let overlay = document.getElementById("detail-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "detail-overlay";
+      overlay.className = "detail-overlay";
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("open"); });
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = `<div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="signin-title">
+      <button class="detail-close" aria-label="Close" onclick="document.getElementById('detail-overlay').classList.remove('open')">&times;</button>
+      <h3 id="signin-title" style="font-size:18px; font-weight:700; margin-bottom:4px">Sign in</h3>
+      <p style="font-size:13px; color:var(--tx-1); line-height:1.55; margin-bottom:14px">We'll email you a one-tap link — no password required. You only need to sign in to post events or moderate. Reading the calendar is always open.</p>
+      <div class="form-group"><label class="form-label" for="signin-email">Email</label><input class="form-input" id="signin-email" type="email" autocomplete="email" placeholder="you@example.com" /></div>
+      <div class="form-actions">
+        <button class="cal-btn" onclick="document.getElementById('detail-overlay').classList.remove('open')">Cancel</button>
+        <button class="cal-btn primary" id="signin-submit" type="button">Send magic link</button>
+      </div>
+      <p style="font-size:11.5px; color:var(--tx-2); margin-top:10px; line-height:1.55">We only use your email for this sign-in and (optional) advocacy alerts. Never sold.</p>
+    </div>`;
+    overlay.classList.add("open");
+    setTimeout(() => document.getElementById("signin-email").focus(), 50);
+    document.getElementById("signin-submit").addEventListener("click", async () => {
+      const email = document.getElementById("signin-email").value.trim();
+      if (!email || !email.includes("@")) { toast("Enter a valid email."); return; }
+      try {
+        await NamiData.auth.signIn(email);
+        overlay.classList.remove("open");
+        toast("Check your email for the sign-in link.");
+      } catch (e) {
+        toast(e.message || "Couldn't send the sign-in link.");
+      }
     });
   }
 

@@ -1,7 +1,7 @@
 // Service worker: cache-first for static shell, network-first for everything else.
 // Keeps the safety plan, crisis info, and grounding tools working offline.
 
-const CACHE = "nami-stl-v2";
+const CACHE = "nami-stl-v3";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -12,6 +12,7 @@ const PRECACHE = [
   "./resources-data.js",
   "./policy-data.js",
   "./partners-data.js",
+  "./data.js",
   "./icon.svg",
   "./manifest.webmanifest",
 ];

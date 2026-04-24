@@ -1,0 +1,16 @@
+// Local configuration for NAMI STL Community Hub.
+// Copy this file to config.js and fill in values from your Supabase project:
+//   Supabase dashboard → Settings → API → copy "URL" and "anon public" key.
+//
+// config.js is gitignored. Do NOT commit it. The anon key is public-safe
+// because Row Level Security policies decide what it can actually do.
+//
+// Leave config.js absent and the site runs in local-only mode: the calendar
+// and everything else keep using browser localStorage exactly as they did
+// before. Drop in these credentials and the calendar becomes shared across
+// devices via Supabase.
+
+window.NAMI_CONFIG = {
+  supabaseUrl: "https://YOUR-PROJECT-REF.supabase.co",
+  supabaseAnonKey: "YOUR-ANON-PUBLIC-KEY",
+};

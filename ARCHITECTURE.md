@@ -296,3 +296,22 @@ Total projected steady-state: **$0–40/month**.
 ## Recommendation
 
 **Adopt Supabase. Implement Phase 1 (shared calendar) as the smoke test. Reassess after that ships.** The rest of the roadmap follows the same pattern, so Phase 1 proves or disproves the approach with the least risk.
+
+---
+
+## Phase 1 — status
+
+Phase 1 scaffolding is now in the repo:
+
+- `data.js` — unified data layer (`NamiData.events.*`, `NamiData.auth.*`) with two swappable backends (local + Supabase).
+- `config.js.example` — template; real `config.js` is gitignored.
+- `supabase/migrations/0001_events.sql` — `events` + `user_roles` + RLS policies + an `is_moderator()` helper.
+- `supabase/README.md` — step-by-step setup: create the project, run the migration, set moderator role, drop in `config.js`.
+- Calendar module refactored: reads from `NamiData.events.cached()`, auto re-renders on data changes, writes via async `NamiData.events.create/deleteById/approve`.
+- Auth UI: *Sign in to post events* link in the footer (only when Supabase is configured); email magic-link flow via `supabase.auth.signInWithOtp`.
+- Moderation UI: if the signed-in user's `user_roles` row says `moderator` or `admin`, a *Pending events awaiting review* panel renders at the top of the calendar with Approve / Reject actions.
+- Service worker precaches `data.js` and bumps the cache to `v3`.
+
+With no `config.js` present, the site behaves identically to Phase 0 — every module uses `localStorage`. With `config.js` present and pointed at a Supabase project, the calendar becomes shared and everything else keeps running locally.
+
+Next phase kicks off after a real Supabase project is provisioned and the two-device smoke test from `supabase/README.md` passes.
