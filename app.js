@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "calendar": renderCalendar(panel); break;
       case "volunteers": renderVolunteers(panel); break;
       case "resources": renderResources(panel); break;
-      case "safetyplan": renderSafetyPlan(panel); break;
+      case "safetyplan": renderSafetyPlan(panel, sub); break;
       case "coping": renderCoping(panel, sub); break;
       case "community": renderCommunity(panel); break;
       case "policy": renderPolicy(panel, sub); break;
@@ -714,7 +714,8 @@ document.addEventListener("DOMContentLoaded", () => {
     { key: "safe",     label: "Making my environment safer",        help: "Steps to reduce access to things I could use to hurt myself — who holds them, where they go.",         placeholder: "Give pills to my partner. Store firearm at Dad's. Remove alcohol from the kitchen." },
   ];
 
-  function renderSafetyPlan(el) {
+  function renderSafetyPlan(el, sub) {
+    if (sub === "wallet") return renderWalletCard(el);
     const plan = Store.get("safety_plan") || {};
     let html = `<div class="sec-hdr"><h2>My safety plan</h2>
       <p>A personal plan, based on the Stanley-Brown Safety Planning Intervention, for getting through the hardest moments. Fill in what makes sense — you can always change it.</p></div>
@@ -734,6 +735,7 @@ document.addEventListener("DOMContentLoaded", () => {
     html += `<div class="sp-actions">
       <button class="cal-btn primary" id="sp-save" type="button">Save plan</button>
       <button class="cal-btn" id="sp-print" type="button">Print / Save as PDF</button>
+      <a class="cal-btn" href="#safetyplan/wallet">Print wallet card</a>
       <button class="cal-btn" id="sp-clear" type="button" style="color:var(--tag-danger-tx)">Clear plan</button>
       <span class="sp-status" id="sp-status">${savedLabel}</span>
     </div>
@@ -768,6 +770,64 @@ document.addEventListener("DOMContentLoaded", () => {
     const ok = Store.set("safety_plan", plan);
     const s = document.getElementById("sp-status");
     if (s) s.textContent = ok ? "Last saved just now" : "Couldn't save — browser storage may be full";
+  }
+
+  function planToBullets(str, max) {
+    if (!str) return [];
+    return str.split(/[\r\n]+|\.\s+|;\s+|\s•\s+/)
+      .map((s) => s.trim().replace(/^[-•*]\s*/, ""))
+      .filter(Boolean)
+      .slice(0, max || 3);
+  }
+
+  function renderWalletCard(el) {
+    const plan = Store.get("safety_plan") || {};
+    const supports = planToBullets(plan.support, 3);
+    const helps = planToBullets(plan.coping, 3);
+    const name = (Store.get("prefs") || {}).displayName || "";
+
+    const supportsHtml = supports.length
+      ? supports.map((s) => `<li>${esc(s)}</li>`).join("")
+      : `<li class="wc-empty">Add people you can call in your safety plan &rarr; they appear here.</li>`;
+    const helpsHtml = helps.length
+      ? helps.map((s) => `<li>${esc(s)}</li>`).join("")
+      : `<li class="wc-empty">Add coping strategies in your safety plan &rarr; they appear here.</li>`;
+
+    el.innerHTML = `<div class="sec-hdr"><h2>Wallet crisis card</h2>
+      <p>A fold-and-carry card with every crisis number plus your personal supports from your safety plan. Print on any paper, cut out, fold along the dashed line, carry.</p></div>
+
+      <div class="wc-actions no-print">
+        <button class="cal-btn primary" id="wc-print" type="button">Print this card</button>
+        <a class="cal-btn" href="#safetyplan">&larr; Back to safety plan</a>
+      </div>
+
+      <div class="wc-stage">
+        <article class="wallet-card" aria-label="Printable crisis card">
+          <section class="wc-front">
+            <div class="wc-label">If I'm in crisis</div>
+            <div class="wc-big"><span class="wc-line-label">Call or text</span><span class="wc-number">988</span></div>
+            <div class="wc-row"><span>Crisis text</span><span class="wc-mono">HOME to 741741</span></div>
+            <div class="wc-row"><span>STL mobile crisis</span><span class="wc-mono">314-469-6644</span></div>
+            <div class="wc-row"><span>Life-threatening</span><span class="wc-mono">911</span></div>
+            ${name ? `<div class="wc-foot">For ${esc(name)}</div>` : `<div class="wc-foot">You're not alone.</div>`}
+          </section>
+          <section class="wc-back">
+            <div class="wc-sec-title">People I can call</div>
+            <ul class="wc-list">${supportsHtml}</ul>
+            <div class="wc-sec-title">Things that help</div>
+            <ul class="wc-list">${helpsHtml}</ul>
+          </section>
+        </article>
+      </div>
+
+      <p class="wc-tip no-print">Tip: choose <em>Scale: 100%</em> (or "Actual size") in the print dialog so the card comes out at real wallet size. Fold on the dashed line.</p>`;
+
+    document.getElementById("wc-print").addEventListener("click", () => {
+      document.body.classList.add("wallet-print");
+      window.print();
+      setTimeout(() => document.body.classList.remove("wallet-print"), 0);
+    });
+    window.addEventListener("afterprint", () => document.body.classList.remove("wallet-print"), { once: true });
   }
 
   // ════════════════════════════════════════
