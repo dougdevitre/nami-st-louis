@@ -408,13 +408,46 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   scroll-behavior: auto !important;
 }
 
-/* ── Print (safety plan) ── */
+/* ── Wallet crisis card ── */
+.wc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
+.wc-stage { display: flex; justify-content: center; padding: 24px 0; background: var(--bg-2); border-radius: var(--radius-lg); margin-bottom: 12px; overflow-x: auto; }
+.wc-tip { font-size: 12.5px; color: var(--tx-2); line-height: 1.55; }
+
+.wallet-card { width: 3.375in; min-width: 3.375in; background: #FFF; color: #111; border: 1px solid #CFCCC4; border-radius: 6px; overflow: hidden; font-family: var(--font); box-shadow: 0 6px 20px rgba(0,0,0,0.10); display: grid; grid-template-rows: 2.125in 2.125in; }
+.wc-front, .wc-back { padding: 12px 14px; display: flex; flex-direction: column; }
+.wc-front { background: #FAECE9; color: #8C2B2B; border-bottom: 1px dashed #8C2B2B; }
+.wc-back  { background: #FFFFFF; color: #111; }
+.wc-label { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px; opacity: 0.8; }
+.wc-big { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.wc-line-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.wc-number { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.wc-row { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; padding: 3px 0; border-top: 1px solid rgba(140,43,43,0.15); }
+.wc-row:first-of-type { border-top: 0; }
+.wc-mono { font-weight: 700; font-variant-numeric: tabular-nums; }
+.wc-foot { margin-top: auto; font-size: 9px; font-style: italic; opacity: 0.75; }
+.wc-sec-title { font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #0E4A46; margin-top: 4px; margin-bottom: 3px; }
+.wc-sec-title:first-child { margin-top: 0; }
+.wc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.wc-list li { font-size: 10.5px; line-height: 1.35; position: relative; padding-left: 10px; }
+.wc-list li::before { content: "•"; position: absolute; left: 0; top: 0; color: #0E4A46; font-weight: 700; }
+.wc-list li.wc-empty { font-style: italic; color: #6B6B6B; }
+.wc-list li.wc-empty::before { display: none; }
+
+/* ── Print (safety plan + wallet card) ── */
 @media print {
-  .site-header, .module-nav, .quick-exit, .help-fab, .site-footer, .sp-actions, .sp-privacy, .skip-link { display: none !important; }
+  .site-header, .module-nav, .quick-exit, .help-fab, .site-footer, .sp-actions, .sp-privacy, .skip-link, .no-print { display: none !important; }
   .crisis-strip { position: static; border: 1px solid #000; }
   body { background: #FFF; color: #000; }
   .module { display: none; padding: 0; }
   .module.visible { display: block; }
   .sp-section { break-inside: avoid; border: 1px solid #000; box-shadow: none; }
   .sp-textarea { border: none; background: transparent; min-height: 0; white-space: pre-wrap; }
+
+  /* Wallet-only print: hide the safety-plan shell, show just the card at real size */
+  body.wallet-print .crisis-strip, body.wallet-print .sec-hdr, body.wallet-print .wc-tip { display: none !important; }
+  body.wallet-print .wc-stage { background: transparent; padding: 0; margin: 0; justify-content: flex-start; overflow: visible; }
+  body.wallet-print .wallet-card { box-shadow: none; border-color: #000; break-inside: avoid; }
+  body.wallet-print .wc-front { color: #000 !important; background: #FFF !important; border-bottom: 1px dashed #000; }
+  body.wallet-print .wc-front .wc-row { border-color: #BBB; }
+  @page { margin: 0.5in; }
 }
