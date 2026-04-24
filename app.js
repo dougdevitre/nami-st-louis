@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "checkin", label: "Check-in" },
     { id: "community", label: "Community" },
     { id: "policy", label: "Policy" },
+    { id: "advocacy", label: "Advocacy" },
   ];
 
   const moduleNav = document.getElementById("module-nav");
@@ -75,6 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "checkin": renderCheckin(panel); break;
       case "community": renderCommunity(panel); break;
       case "policy": renderPolicy(panel, sub); break;
+      case "advocacy": renderAdvocacy(panel); break;
     }
   }
 
@@ -1334,6 +1336,302 @@ document.addEventListener("DOMContentLoaded", () => {
     a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
   }
+
+  // ════════════════════════════════════════
+  //  ADVOCACY MODULE (Missouri mental health)
+  // ════════════════════════════════════════
+  const MO_COMMITTEES = [
+    { chamber: "Senate", name: "Health and Welfare",                       covers: "988 sustainment, Medicaid behavioral health, workforce", url: "https://www.senate.mo.gov/committees" },
+    { chamber: "Senate", name: "Appropriations",                           covers: "Department of Mental Health budget, CCBHC funding",     url: "https://www.senate.mo.gov/committees" },
+    { chamber: "Senate", name: "Judiciary and Civil and Criminal Jurisprudence", covers: "Involuntary commitment (96-hour hold) reform, crisis diversion", url: "https://www.senate.mo.gov/committees" },
+    { chamber: "House",  name: "Health and Mental Health Policy",          covers: "Crisis response, CIT funding, parity enforcement",      url: "https://house.mo.gov/CommitteeHearings.aspx" },
+    { chamber: "House",  name: "Children and Families",                    covers: "Youth mental health, school-based services",            url: "https://house.mo.gov/CommitteeHearings.aspx" },
+    { chamber: "House",  name: "Budget",                                   covers: "DMH appropriations, mobile crisis funding",             url: "https://house.mo.gov/CommitteeHearings.aspx" },
+  ];
+
+  const AD_TEMPLATES = [
+    {
+      id: "988",
+      title: "Sustained 988 & mobile crisis funding",
+      ask: "Vote yes on dedicated state funding for 988 and mobile crisis response.",
+      subject: "Please fund Missouri's 988 Crisis Lifeline",
+      body: `Dear [Representative/Senator last name],
+
+My name is [your name] and I'm a constituent in [your city or ZIP].
+
+Since 988 launched, it has answered thousands of calls from Missourians who had nowhere else to turn. But 988's long-term success depends on sustained state funding — and Missouri's investment is still uncertain year to year.
+
+I'm asking you to support dedicated, recurring state funding for 988 and for mobile crisis response teams like Behavioral Health Response (BHR) in St. Louis.
+
+[One paragraph here is more powerful than anything I can tell you: if 988, BHR, or a crisis line has affected you, someone you love, or your community, say so — briefly, honestly.]
+
+Mental health care delayed is often mental health care denied. Please help make sure a Missourian in crisis can always reach someone who can help.
+
+Thank you for your time and for representing us.
+
+[Your name]
+[Your address or ZIP]
+[Your phone or email, optional]`,
+    },
+    {
+      id: "cit",
+      title: "Crisis Intervention Team (CIT) training",
+      ask: "Support sustained funding for CIT training for Missouri law enforcement.",
+      subject: "Fund Crisis Intervention Team training for Missouri law enforcement",
+      body: `Dear [Representative/Senator last name],
+
+My name is [your name] and I live in [your city or ZIP].
+
+When someone has a mental health crisis, the first responder is often a police officer. CIT training gives officers the skills to de-escalate and connect the person to care — instead of to jail or a hospital emergency room.
+
+The Missouri CIT Council has trained thousands of officers, but funding is patchy and many rural departments can't afford to send people. I'm asking you to support sustained, statewide CIT funding — both initial 40-hour training and ongoing refreshers.
+
+[If you or someone you love has been in a mental health crisis and had contact with police, a brief personal story here is the most persuasive part of this letter.]
+
+CIT saves lives, reduces use of force, and keeps people out of the criminal justice system where they don't belong. Please help make it available everywhere in Missouri.
+
+Thank you.
+
+[Your name]
+[Your address or ZIP]`,
+    },
+    {
+      id: "parity",
+      title: "Enforce mental health parity",
+      ask: "Support stronger state enforcement of mental-health parity in insurance coverage.",
+      subject: "Enforce mental health parity in Missouri insurance plans",
+      body: `Dear [Representative/Senator last name],
+
+My name is [your name] and I'm writing from [your city or ZIP].
+
+Federal law (the Mental Health Parity and Addiction Equity Act) requires insurance plans to cover mental health and substance use care on the same terms as physical health care. In practice, families still run into narrow networks, "ghost" provider lists, and prior-authorization rules that don't apply to other conditions.
+
+I'm asking you to support stronger state parity enforcement — including reporting requirements, provider-directory audits, and meaningful consequences when insurers fall short.
+
+[Brief story, if you have one: "When I tried to find a therapist covered by my plan, the list of in-network providers had [how many] that were actually accepting patients…"]
+
+People with mental illness deserve the same access to care as anyone else. Please help close the gap between what the law says and what families experience.
+
+Thank you for your work.
+
+[Your name]
+[Your address or ZIP]`,
+    },
+    {
+      id: "holds",
+      title: "Reform involuntary commitment (96-hour hold)",
+      ask: "Support reforms that reduce police-led responses and expand civil alternatives.",
+      subject: "Reform Missouri's 96-hour hold process",
+      body: `Dear [Representative/Senator last name],
+
+My name is [your name] and I live in [your city or ZIP].
+
+Missouri's 96-hour hold under RSMo 632.305 is meant to get people in crisis to care, but in practice it often runs through police transport, emergency departments, and long waits — experiences that can be traumatic and discourage people from seeking help again.
+
+I'm asking you to support reforms that expand civil, non-police crisis response (like mobile crisis teams), shorten ED boarding, and protect the civil rights of people on holds — while preserving the ability to get help to someone who truly needs it.
+
+[If you or someone you love has been through a 96-hour hold, a short personal description of what worked and what didn't is more persuasive than any advocacy framing.]
+
+Thank you for considering this.
+
+[Your name]
+[Your address or ZIP]`,
+    },
+    {
+      id: "youth",
+      title: "Youth mental health in schools",
+      ask: "Support dedicated funding for school-based mental health in Missouri.",
+      subject: "Invest in school-based mental health for Missouri students",
+      body: `Dear [Representative/Senator last name],
+
+My name is [your name] and I live in [your city or ZIP].
+
+Missouri students are facing a mental health crisis. Schools are often the first place a young person can be reached — but most Missouri districts don't have enough counselors, social workers, or psychologists to meet recommended ratios.
+
+I'm asking you to support dedicated state funding for school-based mental health: counselors in every building, partnerships with community providers, and training for teachers to recognize warning signs.
+
+[If you're a parent, teacher, or student with a story about a school that got this right or missed a chance to get it right, please include that.]
+
+Early support prevents crises later. Please invest in it.
+
+[Your name]
+[Your address or ZIP]`,
+    },
+  ];
+
+  const CALL_SCRIPT = `"Hi, my name is [your name] and I'm a constituent in [your city or ZIP]. I'm calling to ask [Senator/Representative Last Name] to [your ask, one sentence]. Mental health care matters to me because [one sentence — your reason, your connection]. Could you pass that along? Thank you."`;
+
+  function renderAdvocacy(el) {
+    const log = (Store.get("advocacy_log") || []).slice().sort((a, b) => b.when.localeCompare(a.when));
+    const templatesHtml = AD_TEMPLATES.map((t) => `
+      <details class="ad-tmpl">
+        <summary>
+          <div>
+            <div class="ad-tmpl-title">${esc(t.title)}</div>
+            <div class="ad-tmpl-ask">${esc(t.ask)}</div>
+          </div>
+          <span class="ad-tmpl-chev" aria-hidden="true">▾</span>
+        </summary>
+        <div class="ad-tmpl-body">
+          <div class="ad-tmpl-meta"><strong>Subject:</strong> ${esc(t.subject)}</div>
+          <textarea class="form-textarea ad-tmpl-text" data-tmpl="${t.id}" rows="14" readonly>${esc(t.body)}</textarea>
+          <div class="ad-tmpl-actions">
+            <button class="cal-btn primary" type="button" data-copy="${t.id}">Copy letter</button>
+            <a class="cal-btn" href="mailto:?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}">Open in email</a>
+            <button class="cal-btn" type="button" data-logbtn="${t.id}" data-logtopic="${esc(t.title)}">Log that I sent this</button>
+          </div>
+        </div>
+      </details>`).join("");
+
+    const committeeRows = MO_COMMITTEES.map((c) => `
+      <a class="res-item" href="${c.url}" target="_blank" rel="noopener noreferrer">
+        <div>
+          <div class="res-name"><span class="ad-chamber ${c.chamber.toLowerCase()}">${c.chamber}</span> ${esc(c.name)}</div>
+          <div class="res-detail">${esc(c.covers)}</div>
+        </div>
+        <span class="res-arrow">&rarr;</span>
+      </a>`).join("");
+
+    const logRows = log.length
+      ? log.slice(0, 10).map((e) => `
+          <div class="ad-log-row">
+            <div class="ad-log-date">${new Date(e.when).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+            <div class="ad-log-body">
+              <div class="ad-log-head"><span class="ad-log-type">${esc(e.type)}</span> <span class="ad-log-recipient">${esc(e.recipient || "")}</span></div>
+              <div class="ad-log-topic">${esc(e.topic || "")}</div>
+              ${e.note ? `<div class="ad-log-note">${esc(e.note)}</div>` : ""}
+            </div>
+            <button class="ci-entry-del" data-logdel="${e.id}" aria-label="Delete entry">&times;</button>
+          </div>`).join("")
+      : `<div class="ci-empty">No advocacy actions logged yet. Make a call or send a letter, then log it here.</div>`;
+
+    el.innerHTML = `<div class="sec-hdr"><h2>Advocate for mental health in Missouri</h2>
+      <p>Concrete ways to push for the policy changes the <a href="#policy">Policy</a> tab tracks. Everything on this page is optional — pick the one thing that feels doable today.</p></div>
+
+      <div class="ad-hero">
+        <div class="ad-hero-step">Step 1</div>
+        <h3>Find your legislators</h3>
+        <p>Your state Senator and Representative both represent you. Enter your address at either lookup:</p>
+        <div class="ad-hero-actions">
+          <a class="cal-btn primary" href="https://www.senate.mo.gov/LegisLookup/Default.aspx" target="_blank" rel="noopener">Missouri Senate lookup &rarr;</a>
+          <a class="cal-btn" href="https://house.mo.gov/MemberGridCluster.aspx?filter=clear" target="_blank" rel="noopener">Missouri House directory &rarr;</a>
+        </div>
+        <div class="ad-hero-switchboard">
+          Main switchboards: Senate <a href="tel:15737513824">573-751-3824</a> &middot; House <a href="tel:15737513659">573-751-3659</a>
+        </div>
+      </div>
+
+      <div class="sec-hdr" style="margin-top:1.5rem"><h3>Step 2 — Key committees for mental health</h3>
+        <p>If a bill you care about is in one of these committees, contacting <em>its members</em> matters more than emailing every legislator.</p></div>
+      <div class="res-list">${committeeRows}</div>
+
+      <div class="sec-hdr" style="margin-top:1.5rem"><h3>Step 3 — Send a letter</h3>
+        <p>Tap a topic, copy the draft, edit to make it yours, send it from your own email. Personal stories are the most persuasive part — one sentence is enough.</p></div>
+      <div class="ad-tmpl-list">${templatesHtml}</div>
+
+      <div class="sec-hdr" style="margin-top:1.5rem"><h3>Step 4 — Make a call</h3>
+        <p>A call takes two minutes and carries more weight than an email. Don't worry about getting the policy details perfect — staff just want to know where constituents stand.</p></div>
+      <div class="ad-script">${esc(CALL_SCRIPT)}</div>
+
+      <div class="sec-hdr" style="margin-top:1.5rem"><h3>Step 5 — My advocacy log</h3>
+        <p>Track what you've done and who you've contacted. Stays on this device. Export a CSV for NAMI STL advocacy team reporting if you want.</p></div>
+      <div class="ad-log-form">
+        <select class="form-select" id="ad-type">
+          <option value="Call">Call</option>
+          <option value="Email">Email</option>
+          <option value="Letter">Letter</option>
+          <option value="Visit">In-person visit</option>
+          <option value="Testimony">Testimony / witness slip</option>
+          <option value="Social">Social media post</option>
+          <option value="Meeting">Meeting attended</option>
+        </select>
+        <input class="form-input" id="ad-recipient" placeholder="Recipient (e.g., Sen. Smith, HB 123 chair, NAMI STL advocacy)" />
+        <input class="form-input" id="ad-topic" placeholder="Topic (e.g., 988 funding, CIT training)" />
+        <textarea class="form-textarea" id="ad-note" placeholder="Notes (optional)" rows="2"></textarea>
+        <div class="ad-log-actions">
+          <button class="cal-btn primary" type="button" id="ad-log-save">Log action</button>
+          <button class="cal-btn" type="button" id="ad-log-export">Export CSV</button>
+          <button class="cal-btn" type="button" id="ad-log-clear" style="color:var(--tag-danger-tx)">Clear log</button>
+        </div>
+      </div>
+      <div class="ad-log">${logRows}</div>
+
+      <div class="sp-privacy" style="margin-top:1.5rem">For organizers: the companion <a href="https://github.com/dougdevitre/mo-gov" target="_blank" rel="noopener">mo-gov toolkit</a> has legislator rosters, committee maps, and an Airtable-ready outreach pipeline schema if you're coordinating a campaign at scale.</div>`;
+
+    wireAdvocacy(el);
+  }
+
+  function wireAdvocacy(el) {
+    el.querySelectorAll("[data-copy]").forEach((b) => {
+      b.addEventListener("click", async () => {
+        const t = AD_TEMPLATES.find((x) => x.id === b.dataset.copy);
+        if (!t) return;
+        try {
+          await navigator.clipboard.writeText(t.body);
+          toast("Letter copied — paste into email.");
+        } catch {
+          const ta = el.querySelector(`.ad-tmpl-text[data-tmpl="${t.id}"]`);
+          if (ta) { ta.removeAttribute("readonly"); ta.select(); document.execCommand && document.execCommand("copy"); ta.setAttribute("readonly", ""); toast("Letter copied."); }
+        }
+      });
+    });
+
+    el.querySelectorAll("[data-logbtn]").forEach((b) => {
+      b.addEventListener("click", () => {
+        el.querySelector("#ad-type").value = "Email";
+        el.querySelector("#ad-topic").value = b.dataset.logtopic;
+        el.querySelector("#ad-recipient").focus();
+      });
+    });
+
+    el.querySelector("#ad-log-save").addEventListener("click", () => {
+      const type = el.querySelector("#ad-type").value;
+      const recipient = el.querySelector("#ad-recipient").value.trim();
+      const topic = el.querySelector("#ad-topic").value.trim();
+      const note = el.querySelector("#ad-note").value.trim();
+      if (!topic && !recipient) { toast("Add at least a topic or recipient."); return; }
+      Store.push("advocacy_log", {
+        id: Store.uid(), when: new Date().toISOString(), type, recipient, topic, note,
+      });
+      toast("Advocacy action logged.");
+      renderAdvocacy(el);
+    });
+
+    el.querySelector("#ad-log-export").addEventListener("click", () => {
+      const rows = Store.get("advocacy_log") || [];
+      if (!rows.length) { toast("No actions logged yet."); return; }
+      const header = "timestamp,type,recipient,topic,note\n";
+      const body = rows.slice().sort((a, b) => a.when.localeCompare(b.when)).map((e) => {
+        const esc = (s) => `"${String(s || "").replace(/"/g, '""')}"`;
+        return [esc(e.when), esc(e.type), esc(e.recipient), esc(e.topic), esc(e.note)].join(",");
+      }).join("\n");
+      const blob = new Blob([header + body + "\n"], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `nami-stl-advocacy-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    });
+
+    el.querySelector("#ad-log-clear").addEventListener("click", () => {
+      if (!confirm("Clear your entire advocacy log? This can't be undone.")) return;
+      Store.delete("advocacy_log");
+      renderAdvocacy(el);
+      toast("Advocacy log cleared.");
+    });
+  }
+
+  // Delegate advocacy-log deletes
+  document.addEventListener("click", (e) => {
+    const del = e.target.closest && e.target.closest("[data-logdel]");
+    if (!del) return;
+    if (!confirm("Remove this logged action?")) return;
+    Store.removeById("advocacy_log", del.dataset.logdel);
+    const panel = document.getElementById("mod-advocacy");
+    if (panel && panel.classList.contains("visible")) renderAdvocacy(panel);
+  });
 
   // ════════════════════════════════════════
   //  SERVICE WORKER (offline)
