@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "community", label: "Community" },
     { id: "policy", label: "Policy" },
     { id: "advocacy", label: "Advocacy" },
+    { id: "stories", label: "My stories" },
   ];
 
   const moduleNav = document.getElementById("module-nav");
@@ -88,6 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "community": renderCommunity(panel); break;
       case "policy": renderPolicy(panel, sub); break;
       case "advocacy": renderAdvocacy(panel); break;
+      case "stories": renderStories(panel); break;
     }
   }
 
@@ -1494,6 +1496,7 @@ Early support prevents crises later. Please invest in it.
           <textarea class="form-textarea ad-tmpl-text" data-tmpl="${t.id}" rows="14" readonly>${esc(t.body)}</textarea>
           <div class="ad-tmpl-actions">
             <button class="cal-btn primary" type="button" data-copy="${t.id}">Copy letter</button>
+            <button class="cal-btn" type="button" data-insertstory="${t.id}">Insert my story</button>
             <a class="cal-btn" href="mailto:?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}">Open in email</a>
             <button class="cal-btn" type="button" data-logbtn="${t.id}" data-logtopic="${esc(t.title)}">Log that I sent this</button>
           </div>
@@ -1599,6 +1602,10 @@ Early support prevents crises later. Please invest in it.
         el.querySelector("#ad-topic").value = b.dataset.logtopic;
         el.querySelector("#ad-recipient").focus();
       });
+    });
+
+    el.querySelectorAll("[data-insertstory]").forEach((b) => {
+      b.addEventListener("click", () => openStoryPicker(b.dataset.insertstory));
     });
 
     el.querySelector("#ad-log-save").addEventListener("click", () => {
@@ -1801,6 +1808,288 @@ Early support prevents crises later. Please invest in it.
         <li><strong>Set boundaries you can keep.</strong> "I love you and I can't drive over at 3am anymore — but I'll call every morning at 8." A kept small promise beats a broken big one.</li>
       </ul>
     </div>`;
+  }
+
+  // ════════════════════════════════════════
+  //  PERSONAL STORY BANK (reusable testimony)
+  // ════════════════════════════════════════
+  const STORY_TOPICS = [
+    "988 / crisis",
+    "Police / CIT",
+    "Insurance / parity",
+    "96-hour hold",
+    "Youth / school",
+    "Family / caregiver",
+    "Recovery / peer",
+    "Housing",
+    "General",
+  ];
+
+  let storyEditingId = null;
+
+  function renderStories(el) {
+    const stories = (Store.get("stories") || []).slice().sort((a, b) => (b.updated || "").localeCompare(a.updated || ""));
+    const filter = sessionStorage.getItem("nami_stories_filter") || "";
+    const filtered = filter ? stories.filter((s) => (s.topics || []).includes(filter)) : stories;
+
+    let html = `<div class="sec-hdr"><h2>Your story bank</h2>
+      <p>A personal story — even two sentences — is often the most persuasive part of any advocacy letter, testimony, or social post. Write your paragraphs here once, then reuse them everywhere.</p></div>
+      <div class="sp-intro">Stays on this device. Nothing is sent anywhere. Use <em>Export</em> below to keep a copy. On the <a href="#advocacy">Advocacy</a> page, each letter template has an <em>Insert my story</em> button that pulls from this bank.</div>
+
+      <details class="story-help">
+        <summary>Writing prompts — if you're stuck</summary>
+        <ul>
+          <li>What pulled you into caring about mental health? The one moment.</li>
+          <li>A time the system failed you, or someone you love.</li>
+          <li>A time care worked — and what was different about it.</li>
+          <li>What do you wish your state legislator understood? One sentence.</li>
+          <li>Why Missouri specifically — something you've seen here.</li>
+          <li>If you had sixty seconds at a committee hearing, what would you say?</li>
+        </ul>
+      </details>
+
+      <details class="story-help">
+        <summary>A note on safe storytelling</summary>
+        <ul>
+          <li>Focus on your feelings and what you did — not specific methods or graphic descriptions.</li>
+          <li>"I was struggling" or "I was in a very dark place" is enough.</li>
+          <li>Say someone "died by suicide" rather than using graphic language.</li>
+          <li>You own your story. Share what's safe — and only what's safe — for you.</li>
+          <li>If your story mentions someone else, consider whether they'd want it shared.</li>
+        </ul>
+      </details>
+
+      <div class="sec-hdr" style="margin-top:1.25rem"><h3>${storyEditingId ? "Edit story" : "Write a story"}</h3></div>
+      <div class="story-form">
+        <input class="form-input" id="story-title" placeholder="Title (optional — e.g. 'Why 988 matters to me')" />
+        <div class="story-topic-picker" role="group" aria-label="Topics">
+          ${STORY_TOPICS.map((t) => `<button type="button" class="ci-tag" data-storytopic="${esc(t)}">${esc(t)}</button>`).join("")}
+        </div>
+        <textarea class="form-textarea" id="story-body" placeholder="Write as much or as little as feels right. One paragraph is often more powerful than a page." rows="6"></textarea>
+        <div class="story-form-actions">
+          <button type="button" class="cal-btn primary" id="story-save">${storyEditingId ? "Save changes" : "Save story"}</button>
+          ${storyEditingId ? `<button type="button" class="cal-btn" id="story-cancel">Cancel edit</button>` : ""}
+        </div>
+      </div>
+
+      <div class="sec-hdr" style="margin-top:1.5rem"><h3>Your stories${stories.length ? ` (${stories.length})` : ""}</h3></div>`;
+
+    if (stories.length) {
+      html += `<div class="story-filter" role="group" aria-label="Filter by topic">
+        <button type="button" class="ci-tag ${!filter ? "selected" : ""}" data-storyfilter="">All</button>
+        ${STORY_TOPICS.map((t) => `<button type="button" class="ci-tag ${filter === t ? "selected" : ""}" data-storyfilter="${esc(t)}">${esc(t)}</button>`).join("")}
+      </div>`;
+    }
+
+    if (!filtered.length) {
+      html += `<div class="ci-empty">${stories.length ? "No stories with that topic yet." : "No stories yet. Write your first one above."}</div>`;
+    } else {
+      html += `<div class="story-list">`;
+      filtered.forEach((s) => {
+        const topics = (s.topics || []).map((t) => `<span class="ci-entry-tag">${esc(t)}</span>`).join("");
+        const preview = esc((s.body || "").slice(0, 320)) + ((s.body || "").length > 320 ? "…" : "");
+        const when = new Date(s.updated || s.created || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        html += `<article class="story-card" data-id="${s.id}">
+          <div class="story-card-head">
+            <div class="story-card-headings">
+              ${s.title ? `<div class="story-card-title">${esc(s.title)}</div>` : `<div class="story-card-title story-untitled">(Untitled)</div>`}
+              <div class="story-card-meta">${when}</div>
+            </div>
+            <div class="story-card-actions">
+              <button type="button" class="cal-btn" data-storycopy="${s.id}">Copy</button>
+              <button type="button" class="cal-btn" data-storyedit="${s.id}">Edit</button>
+              <button type="button" class="cal-btn" data-storydel="${s.id}" style="color:var(--tag-danger-tx)">Delete</button>
+            </div>
+          </div>
+          <div class="story-card-body">${preview}</div>
+          ${topics ? `<div class="ci-entry-tags">${topics}</div>` : ""}
+        </article>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `<div class="ci-actions" style="margin-top:1rem">
+      <button type="button" class="cal-btn" id="story-export">Export all as text</button>
+      <button type="button" class="cal-btn" id="story-clear" style="color:var(--tag-danger-tx)">Clear all stories</button>
+    </div>`;
+
+    el.innerHTML = html;
+    wireStories(el, stories);
+  }
+
+  function wireStories(el, stories) {
+    const titleEl = el.querySelector("#story-title");
+    const bodyEl = el.querySelector("#story-body");
+    const pickedTopics = new Set();
+
+    const setTopicButtons = () => {
+      el.querySelectorAll("[data-storytopic]").forEach((b) => b.classList.toggle("selected", pickedTopics.has(b.dataset.storytopic)));
+    };
+
+    if (storyEditingId) {
+      const cur = stories.find((x) => x.id === storyEditingId);
+      if (cur) {
+        titleEl.value = cur.title || "";
+        bodyEl.value = cur.body || "";
+        (cur.topics || []).forEach((t) => pickedTopics.add(t));
+        setTopicButtons();
+      } else {
+        storyEditingId = null;
+      }
+    }
+
+    el.querySelectorAll("[data-storytopic]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const t = b.dataset.storytopic;
+        if (pickedTopics.has(t)) pickedTopics.delete(t); else pickedTopics.add(t);
+        setTopicButtons();
+      });
+    });
+
+    el.querySelector("#story-save").addEventListener("click", () => {
+      const title = titleEl.value.trim();
+      const body = bodyEl.value.trim();
+      if (!body) { toast("Write something first."); bodyEl.focus(); return; }
+      const now = new Date().toISOString();
+      const current = Store.get("stories") || [];
+      if (storyEditingId) {
+        const idx = current.findIndex((s) => s.id === storyEditingId);
+        if (idx >= 0) {
+          current[idx] = { ...current[idx], title, body, topics: [...pickedTopics], updated: now };
+          Store.set("stories", current);
+          storyEditingId = null;
+          toast("Story updated.");
+        }
+      } else {
+        current.push({ id: Store.uid(), title, body, topics: [...pickedTopics], created: now, updated: now });
+        Store.set("stories", current);
+        toast("Story saved.");
+      }
+      renderStories(el);
+    });
+
+    const cancelBtn = el.querySelector("#story-cancel");
+    if (cancelBtn) cancelBtn.addEventListener("click", () => { storyEditingId = null; renderStories(el); });
+
+    el.querySelectorAll("[data-storyfilter]").forEach((b) => {
+      b.addEventListener("click", () => {
+        sessionStorage.setItem("nami_stories_filter", b.dataset.storyfilter);
+        renderStories(el);
+      });
+    });
+
+    el.querySelectorAll("[data-storycopy]").forEach((b) => {
+      b.addEventListener("click", async () => {
+        const s = (Store.get("stories") || []).find((x) => x.id === b.dataset.storycopy);
+        if (!s) return;
+        try {
+          await navigator.clipboard.writeText(s.body || "");
+          toast("Story copied to clipboard.");
+        } catch {
+          toast("Couldn't access clipboard — select and copy manually.");
+        }
+      });
+    });
+
+    el.querySelectorAll("[data-storyedit]").forEach((b) => {
+      b.addEventListener("click", () => {
+        storyEditingId = b.dataset.storyedit;
+        renderStories(el);
+        setTimeout(() => el.querySelector("#story-title")?.focus(), 0);
+        el.querySelector(".story-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    el.querySelectorAll("[data-storydel]").forEach((b) => {
+      b.addEventListener("click", () => {
+        if (!confirm("Delete this story? This can't be undone.")) return;
+        Store.removeById("stories", b.dataset.storydel);
+        toast("Story deleted.");
+        renderStories(el);
+      });
+    });
+
+    el.querySelector("#story-export").addEventListener("click", () => {
+      const rows = Store.get("stories") || [];
+      if (!rows.length) { toast("No stories to export yet."); return; }
+      const body = rows.slice().sort((a, b) => (b.updated || "").localeCompare(a.updated || "")).map((s) => {
+        const when = new Date(s.updated || s.created).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        const tags = (s.topics || []).length ? `Topics: ${(s.topics || []).join(", ")}\n` : "";
+        return `${"=".repeat(60)}\n${s.title || "(Untitled)"}\nUpdated: ${when}\n${tags}\n${s.body}\n`;
+      }).join("\n");
+      const blob = new Blob([`My story bank — NAMI STL Community Hub\nExported ${new Date().toLocaleString()}\n\n${body}\n`], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `nami-stl-stories-${new Date().toISOString().slice(0, 10)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    });
+
+    el.querySelector("#story-clear").addEventListener("click", () => {
+      if (!confirm("Clear every story from this device? This can't be undone.")) return;
+      Store.delete("stories");
+      storyEditingId = null;
+      sessionStorage.removeItem("nami_stories_filter");
+      renderStories(el);
+      toast("Stories cleared.");
+    });
+  }
+
+  // Picker overlay for inserting a story into an advocacy template
+  function openStoryPicker(templateId) {
+    const stories = Store.get("stories") || [];
+    if (!stories.length) {
+      if (confirm("You haven't written any stories yet. Open the Stories page to write one?")) location.hash = "stories";
+      return;
+    }
+    let overlay = document.getElementById("detail-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "detail-overlay";
+      overlay.className = "detail-overlay";
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("open"); });
+      document.body.appendChild(overlay);
+    }
+    const list = stories.slice().sort((a, b) => (b.updated || "").localeCompare(a.updated || "")).map((s) => {
+      const preview = esc((s.body || "").slice(0, 220)) + ((s.body || "").length > 220 ? "…" : "");
+      return `<button type="button" class="story-pick" data-pickid="${s.id}">
+        <div class="story-pick-title">${esc(s.title || "(Untitled)")}</div>
+        <div class="story-pick-body">${preview}</div>
+      </button>`;
+    }).join("");
+    overlay.innerHTML = `<div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="sp-title">
+      <button class="detail-close" aria-label="Close" onclick="document.getElementById('detail-overlay').classList.remove('open')">&times;</button>
+      <h3 id="sp-title" style="font-size:18px; font-weight:700; margin-bottom:4px">Pick a story to insert</h3>
+      <p style="font-size:13px; color:var(--tx-1); line-height:1.55; margin-bottom:12px">It will replace the first <code>[bracketed prompt]</code> in the letter. You can edit before copying.</p>
+      <div class="story-pick-list">${list}</div>
+      <p style="font-size:12px; color:var(--tx-2); margin-top:12px">Need to write a new one? <a href="#stories" onclick="document.getElementById('detail-overlay').classList.remove('open')">Go to Stories &rarr;</a></p>
+    </div>`;
+    overlay.classList.add("open");
+    overlay.querySelectorAll("[data-pickid]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const s = (Store.get("stories") || []).find((x) => x.id === b.dataset.pickid);
+        if (s) insertStoryIntoTemplate(templateId, s.body || "");
+        overlay.classList.remove("open");
+      });
+    });
+  }
+
+  function insertStoryIntoTemplate(templateId, storyBody) {
+    const ta = document.querySelector(`.ad-tmpl-text[data-tmpl="${templateId}"]`);
+    if (!ta) return;
+    ta.removeAttribute("readonly");
+    const text = ta.value;
+    const open = text.indexOf("[");
+    const close = text.indexOf("]", open + 1);
+    if (open >= 0 && close > open) {
+      ta.value = text.slice(0, open) + storyBody + text.slice(close + 1);
+    } else {
+      ta.value = text + "\n\n" + storyBody;
+    }
+    ta.focus();
+    toast("Story inserted — edit and copy when ready.");
   }
 
   // ════════════════════════════════════════
