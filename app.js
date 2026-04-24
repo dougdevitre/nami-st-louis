@@ -1480,6 +1480,45 @@ Early support prevents crises later. Please invest in it.
 
   const CALL_SCRIPT = `"Hi, my name is [your name] and I'm a constituent in [your city or ZIP]. I'm calling to ask [Senator/Representative Last Name] to [your ask, one sentence]. Mental health care matters to me because [one sentence — your reason, your connection]. Could you pass that along? Thank you."`;
 
+  const TESTIMONY_TEMPLATE = {
+    id: "testimony",
+    title: "Written testimony (any bill)",
+    ask: "Formally submit your views on a bill for the public record.",
+    subject: "Testimony re: [Bill number] — [Support / Oppose]",
+    body: `[Your name]
+[Your address]
+[Today's date]
+
+The Honorable [Chair last name], Chair
+[Committee name]
+State Capitol, 201 W Capitol Ave
+Jefferson City, MO 65101
+
+Re: [Bill number] — [Support / Oppose / Support with amendment]
+
+Dear Chair [Last name] and Members of the Committee,
+
+My name is [your name] and I am a resident of [your city or ZIP]. I am writing in [support of / opposition to] [bill number], [bill short title].
+
+[One sentence on your personal connection — why you're submitting testimony on this bill.]
+
+I offer three reasons for my position:
+
+1. [First reason — a fact, a number, or a piece of lived experience.]
+2. [Second reason.]
+3. [Third reason.]
+
+[Optional personal story — one paragraph. This is the most persuasive part of most testimony. See the "Insert my story" button below.]
+
+I respectfully ask the committee to [vote do-pass / vote do-not-pass / adopt the following amendment: ...].
+
+Thank you for your time and for your service to Missouri.
+
+Sincerely,
+[Your name]
+[Your phone or email — optional]`,
+  };
+
   function renderAdvocacy(el) {
     const log = (Store.get("advocacy_log") || []).slice().sort((a, b) => b.when.localeCompare(a.when));
     const templatesHtml = AD_TEMPLATES.map((t) => `
@@ -1576,15 +1615,64 @@ Early support prevents crises later. Please invest in it.
       </div>
       <div class="ad-log">${logRows}</div>
 
+      <div class="sec-hdr" style="margin-top:1.5rem" id="ad-testimony"><h3>Step 6 — Submit testimony on a specific bill</h3>
+        <p>In Missouri you don't have to travel to Jefferson City to be heard. Written testimony counts the same as in-person, and committee chairs distribute it to every member.</p></div>
+
+      <div class="ad-howto">
+        <div class="ad-howto-col">
+          <div class="ad-howto-title">How to submit written testimony</div>
+          <ol class="sup-steps" style="margin-top:10px">
+            <li>Find the bill and its committee at <a href="https://www.senate.mo.gov/bills" target="_blank" rel="noopener">senate.mo.gov/bills</a> or <a href="https://house.mo.gov/BillList.aspx" target="_blank" rel="noopener">house.mo.gov/BillList</a>. Note the bill number (e.g., <em>SB 123</em> or <em>HB 456</em>) and the committee name.</li>
+            <li>Check when it's being heard on the committee's hearings page: <a href="https://www.senate.mo.gov/committees" target="_blank" rel="noopener">Senate committees</a> · <a href="https://house.mo.gov/CommitteeHearings.aspx" target="_blank" rel="noopener">House hearings</a>. The committee page lists the chair's contact.</li>
+            <li>Keep your testimony to <strong>one page</strong>. Use the template below. Name, address, bill number, position, 2–3 reasons, an optional personal story, ask.</li>
+            <li>Email it to the <strong>committee chair</strong> and CC your own Senator and Representative. Try to send at least 24 hours before the hearing.</li>
+            <li>Log it in Step 5 above — type <em>Testimony / witness slip</em> — so you can remember what you submitted.</li>
+          </ol>
+        </div>
+        <div class="ad-howto-col">
+          <div class="ad-howto-title">If you're testifying in person</div>
+          <ul class="sup-selflist" style="margin-top:10px">
+            <li>Sign up at the committee room's witness form when you arrive (or the online form if the committee offers one).</li>
+            <li>Time limit is usually <strong>3 minutes per witness</strong>. Practice to 2:30 so you have buffer.</li>
+            <li>Bring about <strong>15 paper copies</strong> of your written testimony for committee members and staff.</li>
+            <li>Stick to the bill. If members ask a general question, answer briefly and steer back to the bill.</li>
+            <li>"I respectfully urge a vote do-pass / do-not-pass on [bill number]" is a good closing.</li>
+            <li>If you can't travel, ask the committee whether <strong>virtual testimony</strong> is available — some committees now accept it.</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="ad-tmpl" id="ad-testimony-tmpl">
+        <summary>
+          <div>
+            <div class="ad-tmpl-title">${esc(TESTIMONY_TEMPLATE.title)}</div>
+            <div class="ad-tmpl-ask">${esc(TESTIMONY_TEMPLATE.ask)}</div>
+          </div>
+          <span class="ad-tmpl-chev" aria-hidden="true">▾</span>
+        </summary>
+        <div class="ad-tmpl-body">
+          <div class="ad-tmpl-meta"><strong>Subject line idea:</strong> ${esc(TESTIMONY_TEMPLATE.subject)}</div>
+          <textarea class="form-textarea ad-tmpl-text" data-tmpl="${TESTIMONY_TEMPLATE.id}" rows="22" readonly>${esc(TESTIMONY_TEMPLATE.body)}</textarea>
+          <div class="ad-tmpl-actions">
+            <button class="cal-btn primary" type="button" data-copy="${TESTIMONY_TEMPLATE.id}">Copy testimony</button>
+            <button class="cal-btn" type="button" data-insertstory="${TESTIMONY_TEMPLATE.id}">Insert my story</button>
+            <a class="cal-btn" href="mailto:?subject=${encodeURIComponent(TESTIMONY_TEMPLATE.subject)}&body=${encodeURIComponent(TESTIMONY_TEMPLATE.body)}">Open in email</a>
+            <button class="cal-btn" type="button" data-logbtn="${TESTIMONY_TEMPLATE.id}" data-logtopic="${esc(TESTIMONY_TEMPLATE.title)}">Log that I submitted this</button>
+          </div>
+        </div>
+      </details>
+
       <div class="sp-privacy" style="margin-top:1.5rem">For organizers: the companion <a href="https://github.com/dougdevitre/mo-gov" target="_blank" rel="noopener">mo-gov toolkit</a> has legislator rosters, committee maps, and an Airtable-ready outreach pipeline schema if you're coordinating a campaign at scale.</div>`;
 
     wireAdvocacy(el);
   }
 
   function wireAdvocacy(el) {
+    const findTemplate = (id) => AD_TEMPLATES.find((x) => x.id === id) || (TESTIMONY_TEMPLATE.id === id ? TESTIMONY_TEMPLATE : null);
+
     el.querySelectorAll("[data-copy]").forEach((b) => {
       b.addEventListener("click", async () => {
-        const t = AD_TEMPLATES.find((x) => x.id === b.dataset.copy);
+        const t = findTemplate(b.dataset.copy);
         if (!t) return;
         try {
           await navigator.clipboard.writeText(t.body);
@@ -2142,6 +2230,23 @@ Early support prevents crises later. Please invest in it.
         body: (t.ask || "") + " " + (t.subject || "") + " " + (t.body || "").slice(0, 400),
         hash: "#advocacy",
       });
+    });
+
+    ix.push({
+      title: "Written testimony (any bill)",
+      cat: "Advocacy letter",
+      sub: "Template + how-to",
+      body: "testimony witness slip committee hearing written submit chair bill support oppose Jefferson City",
+      hash: "#advocacy",
+      scrollTo: "ad-testimony",
+    });
+    ix.push({
+      title: "How to testify on a Missouri bill",
+      cat: "Advocacy",
+      sub: "Step 6 — testimony guide",
+      body: "written testimony in-person three minutes committee hearing chair email virtual testimony bill number position support oppose Jefferson City witness form",
+      hash: "#advocacy",
+      scrollTo: "ad-testimony",
     });
 
     MO_COMMITTEES.forEach((c) => {
