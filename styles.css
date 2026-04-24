@@ -408,6 +408,60 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   scroll-behavior: auto !important;
 }
 
+/* ── Supporter guide ── */
+.sup-jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 0.5rem 0 1.25rem; }
+.sup-jump a { font-size: 12.5px; font-weight: 500; padding: 6px 12px; border-radius: var(--radius-pill); background: var(--bg-2); color: var(--tx-1); text-decoration: none; border: 1px solid transparent; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.sup-jump a:hover { background: var(--bg-0); color: var(--tx-0); border-color: var(--bd-1); }
+
+.sup-section { scroll-margin-top: 16px; padding: 18px 20px; background: var(--bg-0); border: 1px solid var(--bd-0); border-radius: var(--radius-lg); margin-bottom: 12px; }
+.sup-section h3 { font-size: 18px; font-weight: 700; color: var(--tx-0); margin-bottom: 4px; letter-spacing: -0.005em; }
+.sup-lede { font-size: 14px; color: var(--tx-1); line-height: 1.55; margin-bottom: 14px; }
+.sup-footnote { font-size: 12.5px; color: var(--tx-2); line-height: 1.55; margin-top: 12px; font-style: italic; }
+
+/* Triage cards */
+.sup-triage { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 720px) { .sup-triage { grid-template-columns: repeat(3, 1fr); } }
+.sup-triage-card { padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--bd-0); background: var(--bg-1); display: flex; flex-direction: column; gap: 6px; }
+.sup-triage-card.call988 { background: var(--accent-soft); border-color: transparent; }
+.sup-triage-card.callbhr { background: var(--tag-teal-bg);  border-color: transparent; }
+.sup-triage-card.call911 { background: var(--tag-danger-bg); border-color: transparent; }
+.sup-triage-num { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.sup-triage-num a { color: inherit; text-decoration: none; }
+.sup-triage-card.call988 .sup-triage-num { color: var(--accent-text); }
+.sup-triage-card.callbhr .sup-triage-num { color: var(--tag-teal-tx); }
+.sup-triage-card.call911 .sup-triage-num { color: var(--tag-danger-tx); }
+.sup-triage-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--tx-1); margin-bottom: 4px; }
+.sup-triage-card ul { list-style: none; padding: 0; margin: 2px 0 4px; display: flex; flex-direction: column; gap: 4px; }
+.sup-triage-card ul li { font-size: 13px; color: var(--tx-0); line-height: 1.45; padding-left: 14px; position: relative; }
+.sup-triage-card ul li::before { content: "•"; position: absolute; left: 2px; top: 0; opacity: 0.5; }
+.sup-triage-note { font-size: 12px; color: var(--tx-1); line-height: 1.5; margin-top: auto; padding-top: 6px; }
+
+/* Numbered steps */
+.sup-steps { list-style: none; counter-reset: sup-step; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.sup-steps > li { counter-increment: sup-step; position: relative; padding: 10px 12px 10px 46px; background: var(--bg-1); border-radius: var(--radius-md); font-size: 14px; color: var(--tx-0); line-height: 1.55; }
+.sup-steps > li::before { content: counter(sup-step); position: absolute; left: 10px; top: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #FFF; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+@media (prefers-color-scheme: dark) { .sup-steps > li::before { color: var(--bg-1); } }
+.sup-steps > li ul { list-style: none; padding: 6px 0 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.sup-steps > li ul li { font-size: 13px; color: var(--tx-1); line-height: 1.5; padding-left: 14px; position: relative; }
+.sup-steps > li ul li::before { content: "›"; position: absolute; left: 2px; color: var(--accent-text); font-weight: 700; }
+
+/* Do / Don't say columns */
+.sup-saysplit { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 640px) { .sup-saysplit { grid-template-columns: 1fr 1fr; } }
+.sup-saycol { padding: 14px 16px; border-radius: var(--radius-md); }
+.sup-saycol.do   { background: var(--tag-success-bg); }
+.sup-saycol.dont { background: var(--tag-warn-bg); }
+.sup-saycol-hd { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.sup-saycol.do .sup-saycol-hd   { color: var(--tag-success-tx); }
+.sup-saycol.dont .sup-saycol-hd { color: var(--tag-warn-tx); }
+.sup-saycol ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.sup-saycol ul li { font-size: 13.5px; color: var(--tx-0); line-height: 1.5; padding-left: 16px; position: relative; }
+.sup-saycol.do ul li::before   { content: "✓"; position: absolute; left: 0; color: var(--tag-success-tx); font-weight: 700; }
+.sup-saycol.dont ul li::before { content: "—"; position: absolute; left: 0; color: var(--tag-warn-tx); font-weight: 700; }
+
+.sup-selflist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.sup-selflist li { padding: 10px 12px; background: var(--bg-1); border-radius: var(--radius-md); font-size: 13.5px; color: var(--tx-0); line-height: 1.55; }
+
 /* ── Advocacy ── */
 .ad-hero { background: var(--accent-soft); border: 1px solid var(--bd-0); border-radius: var(--radius-lg); padding: 20px 22px; margin: 1rem 0; }
 .ad-hero-step { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 4px; }
