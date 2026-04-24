@@ -1,0 +1,15 @@
+# Local config — never commit
+config.js
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (if a build step is added later)
+node_modules/
+dist/
