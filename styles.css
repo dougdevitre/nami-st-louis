@@ -679,6 +679,22 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 .ci-entry-del { font-family: var(--font); font-size: 18px; line-height: 1; background: none; border: none; color: var(--tx-2); cursor: pointer; padding: 0 6px; }
 .ci-entry-del:hover { color: var(--tag-danger-tx); }
 
+/* ── Supporter wallet (crisis card for 911 / first responders) ── */
+.wallet-card-sup .wc-front { background: #FAECE9; color: #7A2121; border-bottom: 1px dashed #7A2121; }
+.wallet-card-sup .wc-label { font-weight: 800; }
+.wallet-card-sup .wc-sup-script { font-size: 10.5px; line-height: 1.4; margin: 4px 0 8px; font-style: italic; }
+.wallet-card-sup .wc-sup-field { display: flex; gap: 6px; font-size: 10px; line-height: 1.35; padding: 3px 0; border-top: 1px solid rgba(0,0,0,0.08); }
+.wallet-card-sup .wc-sup-field:first-of-type { border-top: 0; }
+.wallet-card-sup .wc-sup-field > span { font-weight: 700; min-width: 70px; color: #0E4A46; text-transform: uppercase; letter-spacing: 0.04em; font-size: 8.5px; padding-top: 1px; flex-shrink: 0; }
+.wallet-card-sup .wc-sup-field ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1px; }
+.wallet-card-sup .wc-sup-field ul li { padding-left: 8px; position: relative; }
+.wallet-card-sup .wc-sup-field ul li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #0E4A46; font-weight: 700; }
+
+/* Supporter-guide follow-up callout */
+.sup-followup { margin-top: 14px; padding: 14px 16px; background: var(--accent-soft); border: 1px solid transparent; border-radius: var(--radius-md); }
+.sup-followup-title { font-size: 13px; font-weight: 700; color: var(--accent-text); margin-bottom: 4px; }
+.sup-followup p { font-size: 13px; color: var(--tx-1); line-height: 1.55; margin-bottom: 10px; }
+
 /* ── Wallet crisis card ── */
 .wc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
 .wc-stage { display: flex; justify-content: center; padding: 24px 0; background: var(--bg-2); border-radius: var(--radius-lg); margin-bottom: 12px; overflow-x: auto; }
