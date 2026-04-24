@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "calendar", label: "Calendar" },
     { id: "volunteers", label: "Volunteers" },
     { id: "resources", label: "Resources" },
+    { id: "partners", label: "Partners" },
     { id: "safetyplan", label: "Safety plan" },
     { id: "coping", label: "Coping tools" },
     { id: "checkin", label: "Check-in" },
@@ -82,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "calendar": renderCalendar(panel); break;
       case "volunteers": renderVolunteers(panel); break;
       case "resources": renderResources(panel); break;
+      case "partners": renderPartners(panel); break;
       case "safetyplan": renderSafetyPlan(panel, sub); break;
       case "coping": renderCoping(panel, sub); break;
       case "checkin": renderCheckin(panel); break;
@@ -2197,6 +2199,16 @@ Sincerely,
       });
     });
 
+    (window.PARTNERS_DATA || []).forEach((p) => {
+      ix.push({
+        title: p.name,
+        cat: "Partner",
+        sub: p.short || "",
+        body: [p.description, (p.services || []).join(" "), (p.populations || []).join(" "), (p.languages || []).join(" "), p.phone, p.region, p.hours, p.medicaid === true ? "medicaid" : "", p.slidingScale === true ? "sliding scale" : ""].filter(Boolean).join(" "),
+        hash: "#partners",
+      });
+    });
+
     Object.keys(window.RESOURCES_DATA || {}).forEach((k) => {
       const sec = window.RESOURCES_DATA[k] || {};
       (sec.items || []).forEach((it) => {
@@ -2444,6 +2456,174 @@ Sincerely,
 
   const st = document.getElementById("search-trigger");
   if (st) st.addEventListener("click", openSearch);
+
+  // ════════════════════════════════════════
+  //  PARTNERS DIRECTORY (filterable)
+  // ════════════════════════════════════════
+  const PARTNER_SERVICE_LABELS = {
+    "crisis": "Crisis / mobile crisis",
+    "mobile-crisis": "Mobile crisis",
+    "therapy": "Therapy / counseling",
+    "psychiatry": "Psychiatry",
+    "peer-support": "Peer support",
+    "family-support": "Family support",
+    "case-management": "Case management",
+    "housing": "Housing",
+    "legal": "Legal aid",
+    "substance-use": "Substance use",
+    "primary-care": "Primary care",
+    "education": "Education / training",
+    "advocacy": "Advocacy",
+    "inpatient": "Inpatient",
+    "assessment": "Assessment",
+  };
+  const PARTNER_POPULATION_LABELS = {
+    "general":     "General",
+    "family":      "Family / caregivers",
+    "youth":       "Youth",
+    "older-adults":"Older adults",
+    "lgbtq":       "LGBTQ+",
+    "veterans":    "Veterans",
+    "immigrants":  "Immigrants / refugees",
+    "unhoused":    "Unhoused",
+    "uninsured":   "Uninsured",
+  };
+  const PARTNER_LANGUAGE_LABELS = {
+    "english": "English",
+    "spanish": "Spanish",
+    "bosnian": "Bosnian",
+    "arabic":  "Arabic",
+    "asl":     "ASL",
+  };
+
+  const partnerFilter = { services: new Set(), populations: new Set(), languages: new Set(), medicaid: false, sliding: false };
+
+  function uniqueFacets(key) {
+    const set = new Set();
+    (window.PARTNERS_DATA || []).forEach((p) => (p[key] || []).forEach((v) => set.add(v)));
+    return [...set];
+  }
+
+  function partnerPasses(p) {
+    if (partnerFilter.services.size) {
+      const match = (p.services || []).some((s) => partnerFilter.services.has(s));
+      if (!match) return false;
+    }
+    if (partnerFilter.populations.size) {
+      const match = (p.populations || []).some((s) => partnerFilter.populations.has(s));
+      if (!match) return false;
+    }
+    if (partnerFilter.languages.size) {
+      const match = (p.languages || []).some((s) => partnerFilter.languages.has(s));
+      if (!match) return false;
+    }
+    if (partnerFilter.medicaid && p.medicaid !== true) return false;
+    if (partnerFilter.sliding && p.slidingScale !== true) return false;
+    return true;
+  }
+
+  function renderPartners(el) {
+    const partners = (window.PARTNERS_DATA || []).slice();
+    const services = uniqueFacets("services");
+    const populations = uniqueFacets("populations");
+    const languages = uniqueFacets("languages");
+    const filtered = partners.filter(partnerPasses);
+
+    const chip = (group, v, label, active) =>
+      `<button type="button" class="pd-chip ${active ? "selected" : ""}" data-pd-filter="${group}" data-pd-value="${esc(v)}" aria-pressed="${active ? "true" : "false"}">${esc(label)}</button>`;
+
+    let html = `<div class="sec-hdr"><h2>Find care — partner directory</h2>
+      <p>Mental-health, housing, legal, and family-support organizations in the St. Louis region. Filter by what you need and who you are. Tap a partner to expand contact details.</p></div>
+      <div class="sp-intro"><strong>Verify before relying on a specific number.</strong> Accepted insurance, languages, and wait-times change. This directory is a starting point, not a guarantee of current services. If a contact is out of date, please let NAMI STL know.</div>
+
+      <div class="pd-filters">
+        <div class="pd-filter-row">
+          <div class="pd-filter-label">Service</div>
+          <div class="pd-chip-row">${services.map((s) => chip("services", s, PARTNER_SERVICE_LABELS[s] || s, partnerFilter.services.has(s))).join("")}</div>
+        </div>
+        <div class="pd-filter-row">
+          <div class="pd-filter-label">Who they serve</div>
+          <div class="pd-chip-row">${populations.map((s) => chip("populations", s, PARTNER_POPULATION_LABELS[s] || s, partnerFilter.populations.has(s))).join("")}</div>
+        </div>
+        <div class="pd-filter-row">
+          <div class="pd-filter-label">Language</div>
+          <div class="pd-chip-row">${languages.map((s) => chip("languages", s, PARTNER_LANGUAGE_LABELS[s] || s, partnerFilter.languages.has(s))).join("")}</div>
+        </div>
+        <div class="pd-filter-row">
+          <div class="pd-filter-label">Coverage</div>
+          <div class="pd-chip-row">
+            <button type="button" class="pd-chip ${partnerFilter.medicaid ? "selected" : ""}" data-pd-bool="medicaid" aria-pressed="${partnerFilter.medicaid ? "true" : "false"}">Accepts Medicaid</button>
+            <button type="button" class="pd-chip ${partnerFilter.sliding ? "selected" : ""}" data-pd-bool="sliding" aria-pressed="${partnerFilter.sliding ? "true" : "false"}">Sliding scale / uninsured</button>
+            <button type="button" class="pd-chip pd-chip-reset" id="pd-reset">Reset filters</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-count">${filtered.length} of ${partners.length} partner${partners.length === 1 ? "" : "s"}</div>`;
+
+    if (!filtered.length) {
+      html += `<div class="ci-empty">No partners match those filters. Try loosening one.</div>`;
+    } else {
+      html += `<div class="pd-list">`;
+      filtered.forEach((p) => {
+        const badges = [
+          p.urgent ? `<span class="pd-badge urgent">24/7 crisis</span>` : "",
+          p.medicaid === true ? `<span class="pd-badge">Medicaid</span>` : "",
+          p.slidingScale === true ? `<span class="pd-badge">Sliding scale</span>` : "",
+          ...(p.languages || []).filter((l) => l !== "english").map((l) => `<span class="pd-badge lang">${esc(PARTNER_LANGUAGE_LABELS[l] || l)}</span>`),
+          ...(p.populations || []).filter((x) => x !== "general").map((x) => `<span class="pd-badge pop">${esc(PARTNER_POPULATION_LABELS[x] || x)}</span>`),
+        ].filter(Boolean).join("");
+        const services = (p.services || []).map((s) => esc(PARTNER_SERVICE_LABELS[s] || s)).join(" · ");
+        html += `<article class="pd-card${p.urgent ? " urgent" : ""}">
+          <div class="pd-card-head">
+            <div class="pd-card-headings">
+              <div class="pd-card-name">${esc(p.name)}</div>
+              <div class="pd-card-short">${esc(p.short || "")}</div>
+            </div>
+            <div class="pd-card-contacts">
+              ${p.phone ? `<a class="cal-btn primary" href="tel:${esc(p.phone.replace(/[^0-9+]/g, ""))}">${esc(p.phone)}</a>` : ""}
+              ${p.website ? `<a class="cal-btn" href="${esc(p.website)}" target="_blank" rel="noopener noreferrer">Website &rarr;</a>` : ""}
+            </div>
+          </div>
+          ${badges ? `<div class="pd-badges">${badges}</div>` : ""}
+          <div class="pd-card-body">${esc(p.description || "")}</div>
+          <div class="pd-card-meta">
+            <span><strong>Services:</strong> ${services || "—"}</span>
+            ${p.hours ? `<span><strong>Hours:</strong> ${esc(p.hours)}</span>` : ""}
+            ${p.region ? `<span><strong>Region:</strong> ${esc(p.region)}</span>` : ""}
+          </div>
+        </article>`;
+      });
+      html += `</div>`;
+    }
+
+    el.innerHTML = html;
+
+    el.querySelectorAll("[data-pd-filter]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const group = b.dataset.pdFilter;
+        const value = b.dataset.pdValue;
+        const set = partnerFilter[group];
+        if (set.has(value)) set.delete(value); else set.add(value);
+        renderPartners(el);
+      });
+    });
+    el.querySelectorAll("[data-pd-bool]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const key = b.dataset.pdBool;
+        partnerFilter[key] = !partnerFilter[key];
+        renderPartners(el);
+      });
+    });
+    el.querySelector("#pd-reset").addEventListener("click", () => {
+      partnerFilter.services.clear();
+      partnerFilter.populations.clear();
+      partnerFilter.languages.clear();
+      partnerFilter.medicaid = false;
+      partnerFilter.sliding = false;
+      renderPartners(el);
+    });
+  }
 
   // ════════════════════════════════════════
   //  SERVICE WORKER (offline)
