@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "policy", label: "Policy" },
     { id: "advocacy", label: "Advocacy" },
     { id: "stories", label: "My stories" },
+    { id: "bookmarks", label: "Bookmarks" },
   ];
 
   const moduleNav = document.getElementById("module-nav");
@@ -92,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "policy": renderPolicy(panel, sub); break;
       case "advocacy": renderAdvocacy(panel); break;
       case "stories": renderStories(panel); break;
+      case "bookmarks": renderBookmarks(panel); break;
     }
   }
 
@@ -105,6 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
     PROGRAMS_DATA.forEach((p) => {
       const colorVar = `--tag-${p.color === "red" ? "danger" : p.color === "green" ? "success" : p.color === "amber" ? "warn" : p.color}-tx`;
       html += `<div class="program-card" onclick="showProgramDetail('${p.id}')">
+        ${bmBtn("program", p.id, { title: p.name, sub: p.category })}
         <div class="program-cat" style="color: var(${colorVar})">${p.category}</div>
         <div class="program-name">${p.name}</div>
         <div class="program-summary">${p.summary}</div>
@@ -474,12 +477,14 @@ document.addEventListener("DOMContentLoaded", () => {
       html += `<div class="res-section">
         <div class="res-section-title">${section.title}</div>
         <div class="res-list">`;
-      section.items.forEach((item) => {
+      section.items.forEach((item, idx) => {
+        const resId = `${key}:${idx}:${(item.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}`;
         html += `<a class="res-item${item.urgent ? " urgent" : ""}" href="${item.url}" target="_blank" rel="noopener noreferrer">
           <div>
             <div class="res-name">${item.name}</div>
             <div class="res-detail">${item.detail}</div>
           </div>
+          ${bmBtn("resource", resId, { title: item.name, sub: section.title, href: item.url })}
           <span class="res-arrow">&rarr;</span>
         </a>`;
       });
@@ -1527,7 +1532,7 @@ Sincerely,
       <details class="ad-tmpl">
         <summary>
           <div>
-            <div class="ad-tmpl-title">${esc(t.title)}</div>
+            <div class="ad-tmpl-title">${esc(t.title)} ${bmBtn("advocacy", t.id, { title: t.title, sub: "Advocacy letter template" })}</div>
             <div class="ad-tmpl-ask">${esc(t.ask)}</div>
           </div>
           <span class="ad-tmpl-chev" aria-hidden="true">▾</span>
@@ -1647,7 +1652,7 @@ Sincerely,
       <details class="ad-tmpl" id="ad-testimony-tmpl">
         <summary>
           <div>
-            <div class="ad-tmpl-title">${esc(TESTIMONY_TEMPLATE.title)}</div>
+            <div class="ad-tmpl-title">${esc(TESTIMONY_TEMPLATE.title)} ${bmBtn("advocacy", TESTIMONY_TEMPLATE.id, { title: TESTIMONY_TEMPLATE.title, sub: "Testimony template" })}</div>
             <div class="ad-tmpl-ask">${esc(TESTIMONY_TEMPLATE.ask)}</div>
           </div>
           <span class="ad-tmpl-chev" aria-hidden="true">▾</span>
@@ -2577,7 +2582,7 @@ Sincerely,
         html += `<article class="pd-card${p.urgent ? " urgent" : ""}">
           <div class="pd-card-head">
             <div class="pd-card-headings">
-              <div class="pd-card-name">${esc(p.name)}</div>
+              <div class="pd-card-name">${esc(p.name)} ${bmBtn("partner", p.id, { title: p.name, sub: p.short, href: p.website })}</div>
               <div class="pd-card-short">${esc(p.short || "")}</div>
             </div>
             <div class="pd-card-contacts">
@@ -2623,6 +2628,162 @@ Sincerely,
       partnerFilter.sliding = false;
       renderPartners(el);
     });
+  }
+
+  // ════════════════════════════════════════
+  //  BOOKMARKS (save-for-later)
+  // ════════════════════════════════════════
+  const BOOKMARK_GROUPS = [
+    { type: "program",   label: "Programs",           hash: "#programs"  },
+    { type: "partner",   label: "Partners",           hash: "#partners"  },
+    { type: "resource",  label: "Resources",          hash: "#resources" },
+    { type: "advocacy",  label: "Advocacy templates", hash: "#advocacy"  },
+  ];
+
+  function getBookmarks() { return Store.get("bookmarks") || []; }
+  function isBookmarked(type, id) {
+    return getBookmarks().some((b) => b.type === type && b.id === id);
+  }
+  function toggleBookmark(type, id, meta) {
+    const bm = getBookmarks();
+    const idx = bm.findIndex((b) => b.type === type && b.id === id);
+    if (idx >= 0) { bm.splice(idx, 1); Store.set("bookmarks", bm); return false; }
+    bm.push({ type, id, addedAt: new Date().toISOString(), title: meta.title || "", sub: meta.sub || "", href: meta.href || "" });
+    Store.set("bookmarks", bm);
+    return true;
+  }
+  function bmBtn(type, id, meta) {
+    const saved = isBookmarked(type, id);
+    return `<button type="button" class="bm-btn${saved ? " saved" : ""}" data-bm-type="${esc(type)}" data-bm-id="${esc(id)}" data-bm-title="${esc(meta.title || "")}" data-bm-sub="${esc(meta.sub || "")}" ${meta.href ? `data-bm-href="${esc(meta.href)}"` : ""} aria-pressed="${saved ? "true" : "false"}" aria-label="${saved ? "Remove bookmark" : "Bookmark"}" title="${saved ? "Remove bookmark" : "Bookmark"}">${saved ? "★" : "☆"}</button>`;
+  }
+
+  // Capture-phase delegate so bookmark clicks don't trigger parent card/anchor handlers
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest && e.target.closest(".bm-btn");
+    if (!btn) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const type = btn.dataset.bmType;
+    const id = btn.dataset.bmId;
+    const meta = { title: btn.dataset.bmTitle || "", sub: btn.dataset.bmSub || "", href: btn.dataset.bmHref || "" };
+    const added = toggleBookmark(type, id, meta);
+    btn.classList.toggle("saved", added);
+    btn.setAttribute("aria-pressed", added ? "true" : "false");
+    btn.textContent = added ? "★" : "☆";
+    btn.setAttribute("aria-label", added ? "Remove bookmark" : "Bookmark");
+    btn.setAttribute("title", added ? "Remove bookmark" : "Bookmark");
+    toast(added ? "Saved to bookmarks." : "Removed from bookmarks.");
+    const panel = document.getElementById("mod-bookmarks");
+    if (panel && panel.classList.contains("visible")) renderBookmarks(panel);
+  }, true);
+
+  function renderBookmarks(el) {
+    const all = getBookmarks().slice().sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""));
+
+    let html = `<div class="sec-hdr"><h2>My bookmarks</h2>
+      <p>Everywhere you tap the star (&#9734;) on a program, resource, partner, or advocacy template, it lands here. Nothing syncs across devices — your bookmarks live on this browser only.</p></div>`;
+
+    if (!all.length) {
+      html += `<div class="ci-empty">No bookmarks yet. Tap the star on any card to save it for later.</div>`;
+      el.innerHTML = html;
+      return;
+    }
+
+    BOOKMARK_GROUPS.forEach((g) => {
+      const items = all.filter((b) => b.type === g.type);
+      if (!items.length) return;
+      html += `<div class="sec-hdr" style="margin-top:1.25rem"><h3>${esc(g.label)} (${items.length})</h3></div>
+        <div class="bm-list">`;
+      items.forEach((b) => {
+        const when = new Date(b.addedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        html += `<div class="bm-item" data-bm-goto="${esc(b.type)}::${esc(b.id)}">
+          <div class="bm-item-body">
+            <div class="bm-item-title">${esc(b.title || "(Untitled)")}</div>
+            ${b.sub ? `<div class="bm-item-sub">${esc(b.sub)}</div>` : ""}
+            <div class="bm-item-meta">Saved ${when}</div>
+          </div>
+          <div class="bm-item-actions">
+            ${b.href ? `<a class="cal-btn" href="${esc(b.href)}" target="_blank" rel="noopener noreferrer">Open &rarr;</a>` : `<button type="button" class="cal-btn" data-bm-open="${esc(b.type)}::${esc(b.id)}">Open</button>`}
+            <button type="button" class="cal-btn" style="color:var(--tag-danger-tx)" data-bm-remove="${esc(b.type)}::${esc(b.id)}">Remove</button>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+
+    html += `<div class="ci-actions" style="margin-top:1rem">
+      <button type="button" class="cal-btn" id="bm-export">Export as text</button>
+      <button type="button" class="cal-btn" id="bm-clear" style="color:var(--tag-danger-tx)">Clear all bookmarks</button>
+    </div>`;
+
+    el.innerHTML = html;
+
+    el.querySelectorAll("[data-bm-open]").forEach((b) => {
+      b.addEventListener("click", () => openBookmark(...b.dataset.bmOpen.split("::")));
+    });
+    el.querySelectorAll("[data-bm-remove]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const [type, id] = b.dataset.bmRemove.split("::");
+        const bm = getBookmarks().filter((x) => !(x.type === type && x.id === id));
+        Store.set("bookmarks", bm);
+        toast("Removed from bookmarks.");
+        renderBookmarks(el);
+      });
+    });
+    el.querySelector("#bm-export").addEventListener("click", exportBookmarks);
+    el.querySelector("#bm-clear").addEventListener("click", () => {
+      if (!confirm("Clear all bookmarks from this device? This can't be undone.")) return;
+      Store.delete("bookmarks");
+      renderBookmarks(el);
+      toast("Bookmarks cleared.");
+    });
+  }
+
+  function openBookmark(type, id) {
+    const hash = (BOOKMARK_GROUPS.find((g) => g.type === type) || {}).hash || "";
+    if (!hash) return;
+    if (location.hash === hash) {
+      const r = getRoute();
+      showModule(r.module, r.sub);
+    } else {
+      location.hash = hash;
+    }
+    setTimeout(() => {
+      if (type === "program" && window.showProgramDetail) window.showProgramDetail(id);
+      if (type === "advocacy") {
+        const details = document.querySelector(`details.ad-tmpl [data-tmpl="${id}"]`)?.closest("details");
+        if (details) { details.open = true; details.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      }
+    }, 140);
+  }
+
+  function exportBookmarks() {
+    const bm = getBookmarks();
+    if (!bm.length) { toast("Nothing to export yet."); return; }
+    const groups = {};
+    BOOKMARK_GROUPS.forEach((g) => { groups[g.type] = []; });
+    bm.forEach((b) => { (groups[b.type] = groups[b.type] || []).push(b); });
+    let out = `My bookmarks — NAMI STL Community Hub\nExported ${new Date().toLocaleString()}\n\n`;
+    BOOKMARK_GROUPS.forEach((g) => {
+      const items = groups[g.type] || [];
+      if (!items.length) return;
+      out += `${g.label} (${items.length})\n${"-".repeat(40)}\n`;
+      items.forEach((b) => {
+        out += `• ${b.title || "(Untitled)"}\n`;
+        if (b.sub) out += `    ${b.sub}\n`;
+        if (b.href) out += `    ${b.href}\n`;
+        out += `    Saved ${new Date(b.addedAt).toLocaleDateString()}\n`;
+      });
+      out += "\n";
+    });
+    const blob = new Blob([out], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nami-stl-bookmarks-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
   }
 
   // ════════════════════════════════════════
