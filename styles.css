@@ -408,6 +408,57 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   scroll-behavior: auto !important;
 }
 
+/* ── Mood check-in ── */
+.ci-card { background: var(--bg-0); border: 1px solid var(--bd-0); border-radius: var(--radius-lg); padding: 18px 20px; margin: 1rem 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+.ci-prompt { font-size: 16px; font-weight: 600; color: var(--tx-0); margin-bottom: 10px; }
+.ci-faces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.ci-face { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; background: var(--bg-1); border: 1px solid transparent; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font); transition: background 0.15s, border-color 0.15s, transform 0.1s; }
+.ci-face:hover { background: var(--bg-2); }
+.ci-face:active { transform: scale(0.97); }
+.ci-face.selected { background: var(--accent-soft); border-color: var(--accent-text); }
+.ci-face-emoji { font-size: 28px; line-height: 1; }
+.ci-face-label { font-size: 11px; font-weight: 600; color: var(--tx-1); }
+.ci-face.selected .ci-face-label { color: var(--accent-text); }
+.ci-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ci-tag { font-family: var(--font); font-size: 12px; padding: 5px 11px; border-radius: var(--radius-pill); border: 1px solid var(--bd-1); background: var(--bg-0); color: var(--tx-1); cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.ci-tag:hover { color: var(--tx-0); border-color: var(--bd-2); }
+.ci-tag.selected { background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent-text); }
+.ci-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.ci-hint { font-size: 12px; color: var(--tx-2); }
+.ci-today { background: var(--bg-0); border: 1px solid var(--bd-0); border-left: 3px solid var(--accent-text); border-radius: var(--radius-md); padding: 10px 14px; font-size: 13px; color: var(--tx-1); margin-bottom: 1rem; }
+.ci-empty { font-size: 13px; color: var(--tx-2); padding: 1.5rem 0; text-align: center; }
+
+/* Chart */
+.ci-chart-wrap { background: var(--bg-0); border: 1px solid var(--bd-0); border-radius: var(--radius-lg); padding: 14px 16px; margin: 1rem 0; }
+.ci-chart-hdr { font-size: 12px; font-weight: 600; color: var(--tx-2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.ci-chart { display: flex; align-items: flex-end; gap: 3px; height: 110px; padding-bottom: 18px; }
+.ci-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; min-width: 0; }
+.ci-bar { width: 100%; max-width: 18px; border-radius: 3px 3px 0 0; background: var(--accent); transition: height 0.3s; }
+.ci-bar.bad  { background: #9b3535; }
+.ci-bar.low  { background: #c07830; }
+.ci-bar.mid  { background: #a28c20; }
+.ci-bar.good { background: #1B5E5A; }
+.ci-bar.empty { background: var(--bg-2); }
+.ci-bar-lbl { position: absolute; bottom: 0; font-size: 9.5px; color: var(--tx-2); }
+.ci-chart-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--tx-1); margin-top: 4px; }
+.ci-key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.ci-key.bad  { background: #9b3535; }
+.ci-key.low  { background: #c07830; }
+.ci-key.mid  { background: #a28c20; }
+.ci-key.good { background: #1B5E5A; }
+
+/* Entries */
+.ci-entries { display: flex; flex-direction: column; gap: 8px; }
+.ci-entry { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: var(--bg-0); border: 1px solid var(--bd-0); border-radius: var(--radius-md); }
+.ci-entry-face { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.ci-entry-body { flex: 1; min-width: 0; }
+.ci-entry-meta { font-size: 12px; color: var(--tx-2); }
+.ci-entry-note { font-size: 13.5px; color: var(--tx-0); line-height: 1.5; margin-top: 3px; }
+.ci-entry-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.ci-entry-tag { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--bg-2); color: var(--tx-1); }
+.ci-entry-del { font-family: var(--font); font-size: 18px; line-height: 1; background: none; border: none; color: var(--tx-2); cursor: pointer; padding: 0 6px; }
+.ci-entry-del:hover { color: var(--tag-danger-tx); }
+
 /* ── Wallet crisis card ── */
 .wc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
 .wc-stage { display: flex; justify-content: center; padding: 24px 0; background: var(--bg-2); border-radius: var(--radius-lg); margin-bottom: 12px; overflow-x: auto; }

@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "resources", label: "Resources" },
     { id: "safetyplan", label: "Safety plan" },
     { id: "coping", label: "Coping tools" },
+    { id: "checkin", label: "Check-in" },
     { id: "community", label: "Community" },
     { id: "policy", label: "Policy" },
   ];
@@ -71,6 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "resources": renderResources(panel); break;
       case "safetyplan": renderSafetyPlan(panel, sub); break;
       case "coping": renderCoping(panel, sub); break;
+      case "checkin": renderCheckin(panel); break;
       case "community": renderCommunity(panel); break;
       case "policy": renderPolicy(panel, sub); break;
     }
@@ -1138,6 +1140,200 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   const a11yBtn = document.getElementById("a11y-open");
   if (a11yBtn) a11yBtn.addEventListener("click", openA11yDialog);
+
+  // ════════════════════════════════════════
+  //  MOOD CHECK-IN MODULE (private, on-device)
+  // ════════════════════════════════════════
+  const MOOD_FACES = [
+    { v: 1, face: "😞", label: "Awful" },
+    { v: 2, face: "😕", label: "Rough" },
+    { v: 3, face: "😐", label: "Okay" },
+    { v: 4, face: "🙂", label: "Good" },
+    { v: 5, face: "😊", label: "Great" },
+  ];
+  const MOOD_TAGS = [
+    "Slept well", "Slept poorly", "Took meds", "Missed meds",
+    "Exercised", "Ate well", "Anxious", "Low", "Overwhelmed",
+    "Grateful", "Reached out", "Isolated",
+  ];
+  const MOOD_CHART_DAYS = 21;
+
+  function renderCheckin(el) {
+    const entries = (Store.get("mood") || []).slice().sort((a, b) => a.when.localeCompare(b.when));
+    const today = new Date().toISOString().slice(0, 10);
+    const todays = entries.filter((e) => e.when.slice(0, 10) === today);
+
+    let html = `<div class="sec-hdr"><h2>How are you?</h2>
+      <p>A 30-second mood check-in. Everything stays on this device — nothing is sent anywhere. Bring the chart to a clinician appointment if it helps.</p></div>
+      <div class="sp-intro">Private: stored only in your browser. Clearing browser data deletes it. Use <em>Export CSV</em> below to keep a copy.</div>
+
+      <div class="ci-card">
+        <div class="ci-prompt">Right now, you feel…</div>
+        <div class="ci-faces" role="radiogroup" aria-label="Mood">
+          ${MOOD_FACES.map((m) => `
+            <button type="button" class="ci-face" data-mood="${m.v}" role="radio" aria-checked="false" aria-label="${m.label}">
+              <span class="ci-face-emoji" aria-hidden="true">${m.face}</span>
+              <span class="ci-face-label">${m.label}</span>
+            </button>`).join("")}
+        </div>
+        <label class="form-label" for="ci-note" style="margin-top:10px; display:block">Add a note (optional)</label>
+        <textarea class="form-textarea" id="ci-note" placeholder="What's going on? Triggers, wins, anything."></textarea>
+        <div class="ci-tags" role="group" aria-label="Tags">
+          ${MOOD_TAGS.map((t) => `<button type="button" class="ci-tag" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}
+        </div>
+        <div class="ci-actions">
+          <button class="cal-btn primary" id="ci-save" type="button" disabled>Save check-in</button>
+          <span class="ci-hint" id="ci-hint">Pick a face to save.</span>
+        </div>
+      </div>`;
+
+    if (todays.length) {
+      html += `<div class="ci-today"><strong>Today:</strong> ${todays.length} check-in${todays.length === 1 ? "" : "s"} already — latest was ${MOOD_FACES.find((m) => m.v === todays[todays.length - 1].mood)?.label.toLowerCase()}.</div>`;
+    }
+
+    html += renderMoodChart(entries);
+    html += renderMoodEntries(entries);
+
+    html += `<div class="ci-actions" style="margin-top:1rem">
+      <button class="cal-btn" id="ci-export" type="button">Export CSV</button>
+      <button class="cal-btn" id="ci-clear" type="button" style="color:var(--tag-danger-tx)">Clear all check-ins</button>
+    </div>`;
+
+    el.innerHTML = html;
+    wireCheckin(el);
+  }
+
+  function wireCheckin(el) {
+    let mood = null;
+    const chosenTags = new Set();
+    const hint = el.querySelector("#ci-hint");
+    const saveBtn = el.querySelector("#ci-save");
+
+    el.querySelectorAll(".ci-face").forEach((b) => {
+      b.addEventListener("click", () => {
+        mood = Number(b.dataset.mood);
+        el.querySelectorAll(".ci-face").forEach((x) => { x.classList.remove("selected"); x.setAttribute("aria-checked", "false"); });
+        b.classList.add("selected");
+        b.setAttribute("aria-checked", "true");
+        saveBtn.disabled = false;
+        hint.textContent = "Add context, or just save.";
+      });
+    });
+
+    el.querySelectorAll(".ci-tag").forEach((t) => {
+      t.addEventListener("click", () => {
+        const tag = t.dataset.tag;
+        if (chosenTags.has(tag)) { chosenTags.delete(tag); t.classList.remove("selected"); }
+        else { chosenTags.add(tag); t.classList.add("selected"); }
+      });
+    });
+
+    saveBtn.addEventListener("click", () => {
+      if (!mood) return;
+      const entry = {
+        id: Store.uid(),
+        when: new Date().toISOString(),
+        mood,
+        note: el.querySelector("#ci-note").value.trim(),
+        tags: [...chosenTags],
+      };
+      Store.push("mood", entry);
+      toast("Check-in saved.");
+      renderCheckin(el);
+    });
+
+    el.querySelector("#ci-export").addEventListener("click", exportMoodCsv);
+    el.querySelector("#ci-clear").addEventListener("click", () => {
+      if (!confirm("Clear every mood check-in from this device? This can't be undone.")) return;
+      Store.delete("mood");
+      renderCheckin(el);
+      toast("Check-ins cleared.");
+    });
+  }
+
+  function renderMoodChart(entries) {
+    if (!entries.length) return `<div class="ci-empty">No check-ins yet. Save one above to start tracking.</div>`;
+    const end = new Date(); end.setHours(0, 0, 0, 0);
+    const days = [];
+    for (let i = MOOD_CHART_DAYS - 1; i >= 0; i--) {
+      const d = new Date(end); d.setDate(end.getDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      const dayEntries = entries.filter((e) => e.when.slice(0, 10) === iso);
+      const avg = dayEntries.length ? dayEntries.reduce((a, b) => a + b.mood, 0) / dayEntries.length : null;
+      days.push({ d, iso, avg, count: dayEntries.length });
+    }
+    const bars = days.map((day) => {
+      if (day.avg == null) return `<div class="ci-bar-col"><div class="ci-bar empty" title="No check-in" style="height:8%"></div><div class="ci-bar-lbl">${day.d.getDate()}</div></div>`;
+      const pct = (day.avg / 5) * 100;
+      const cls = day.avg >= 4 ? "good" : day.avg >= 3 ? "mid" : day.avg >= 2 ? "low" : "bad";
+      return `<div class="ci-bar-col"><div class="ci-bar ${cls}" style="height:${Math.max(14, pct)}%" title="${day.d.toDateString()}: avg ${day.avg.toFixed(1)} (${day.count})"></div><div class="ci-bar-lbl">${day.d.getDate()}</div></div>`;
+    }).join("");
+    return `<div class="ci-chart-wrap">
+      <div class="ci-chart-hdr">Last ${MOOD_CHART_DAYS} days</div>
+      <div class="ci-chart" role="img" aria-label="Mood trend over the last ${MOOD_CHART_DAYS} days">${bars}</div>
+      <div class="ci-chart-legend">
+        <span class="ci-key bad"></span> Awful
+        <span class="ci-key low"></span> Rough
+        <span class="ci-key mid"></span> Okay
+        <span class="ci-key good"></span> Good+
+      </div>
+    </div>`;
+  }
+
+  function renderMoodEntries(entries) {
+    if (!entries.length) return "";
+    const recent = entries.slice().reverse().slice(0, 10);
+    const rows = recent.map((e) => {
+      const face = MOOD_FACES.find((m) => m.v === e.mood);
+      const when = new Date(e.when);
+      const dateLbl = when.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const timeLbl = when.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      const tagStr = e.tags && e.tags.length ? e.tags.map((t) => `<span class="ci-entry-tag">${esc(t)}</span>`).join("") : "";
+      return `<div class="ci-entry">
+        <div class="ci-entry-face" title="${face?.label}">${face?.face || ""}</div>
+        <div class="ci-entry-body">
+          <div class="ci-entry-meta">${dateLbl} &middot; ${timeLbl}</div>
+          ${e.note ? `<div class="ci-entry-note">${esc(e.note)}</div>` : ""}
+          ${tagStr ? `<div class="ci-entry-tags">${tagStr}</div>` : ""}
+        </div>
+        <button class="ci-entry-del" data-del="${e.id}" aria-label="Delete entry">&times;</button>
+      </div>`;
+    }).join("");
+    return `<div class="sec-hdr" style="margin-top:1.5rem"><h3>Recent check-ins</h3></div>
+      <div class="ci-entries">${rows}</div>`;
+  }
+
+  // Delegate entry deletes (list re-renders each save)
+  document.addEventListener("click", (e) => {
+    const del = e.target.closest && e.target.closest(".ci-entry-del");
+    if (!del) return;
+    const id = del.dataset.del;
+    if (!id) return;
+    if (!confirm("Remove this check-in?")) return;
+    Store.removeById("mood", id);
+    const panel = document.getElementById("mod-checkin");
+    if (panel) renderCheckin(panel);
+  });
+
+  function exportMoodCsv() {
+    const rows = Store.get("mood") || [];
+    if (!rows.length) { toast("No check-ins to export yet."); return; }
+    const header = "timestamp,mood,label,note,tags\n";
+    const body = rows.slice().sort((a, b) => a.when.localeCompare(b.when)).map((e) => {
+      const label = (MOOD_FACES.find((m) => m.v === e.mood) || {}).label || "";
+      const note = (e.note || "").replace(/"/g, '""');
+      const tags = (e.tags || []).join("; ").replace(/"/g, '""');
+      return `"${e.when}",${e.mood},"${label}","${note}","${tags}"`;
+    }).join("\n");
+    const blob = new Blob([header + body + "\n"], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nami-stl-mood-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+  }
 
   // ════════════════════════════════════════
   //  SERVICE WORKER (offline)
