@@ -18,6 +18,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const moduleNav = document.getElementById("module-nav");
   const moduleContainer = document.getElementById("modules");
 
+  // Insert a search trigger above the module nav
+  const searchTrigger = document.createElement("button");
+  searchTrigger.type = "button";
+  searchTrigger.id = "search-trigger";
+  searchTrigger.className = "search-trigger";
+  searchTrigger.setAttribute("aria-label", "Search the site");
+  searchTrigger.innerHTML = `<span class="search-trigger-ico" aria-hidden="true">&#9906;</span><span class="search-trigger-text">Search programs, resources, advocacy…</span><kbd class="search-trigger-kbd">/</kbd>`;
+  moduleNav.parentNode.insertBefore(searchTrigger, moduleNav);
+
   // Seed sample data on first load
   seedSampleData();
 
@@ -846,7 +855,7 @@ document.addEventListener("DOMContentLoaded", () => {
       location.replace(NEUTRAL);
     }
     function openOverlay() {
-      return document.querySelector(".detail-overlay.open, .form-overlay.open");
+      return document.querySelector(".detail-overlay.open, .form-overlay.open, .search-overlay.open");
     }
     const btn = document.getElementById("quick-exit");
     if (btn) btn.addEventListener("click", bail);
@@ -1793,6 +1802,254 @@ Early support prevents crises later. Please invest in it.
       </ul>
     </div>`;
   }
+
+  // ════════════════════════════════════════
+  //  GLOBAL SEARCH (offline-safe, static index)
+  // ════════════════════════════════════════
+  function buildSearchIndex() {
+    const ix = [];
+
+    (window.PROGRAMS_DATA || []).forEach((p) => {
+      ix.push({
+        title: p.name,
+        cat: "Program",
+        sub: p.category,
+        body: [p.summary, p.description, (p.tags || []).join(" "), p.audience, p.format, p.cost].filter(Boolean).join(" "),
+        hash: "#programs",
+        action: () => window.showProgramDetail && window.showProgramDetail(p.id),
+      });
+    });
+
+    Object.keys(window.RESOURCES_DATA || {}).forEach((k) => {
+      const sec = window.RESOURCES_DATA[k] || {};
+      (sec.items || []).forEach((it) => {
+        ix.push({
+          title: it.name,
+          cat: "Resource",
+          sub: sec.title || "",
+          body: (it.detail || "") + " " + (sec.title || ""),
+          hash: "#resources",
+          href: it.url,
+        });
+      });
+    });
+
+    Object.keys(window.POLICY_DATA || {}).forEach((k) => {
+      const pol = window.POLICY_DATA[k] || {};
+      ix.push({
+        title: pol.title || k,
+        cat: "Policy",
+        sub: pol.tab || "",
+        body: [pol.description, ...(pol.stats || []).map((s) => `${s.label} ${s.sub || ""}`), ...(pol.cards || []).map((c) => `${c.title || ""} ${c.body || ""}`)].filter(Boolean).join(" "),
+        hash: "#policy/" + k,
+      });
+    });
+
+    AD_TEMPLATES.forEach((t) => {
+      ix.push({
+        title: t.title,
+        cat: "Advocacy letter",
+        sub: "Copy + send",
+        body: (t.ask || "") + " " + (t.subject || "") + " " + (t.body || "").slice(0, 400),
+        hash: "#advocacy",
+      });
+    });
+
+    MO_COMMITTEES.forEach((c) => {
+      ix.push({
+        title: `${c.chamber} — ${c.name}`,
+        cat: "Committee",
+        sub: "Missouri legislature",
+        body: c.covers,
+        hash: "#advocacy",
+      });
+    });
+
+    Object.keys(COPE_TOOLS).forEach((k) => {
+      const t = COPE_TOOLS[k];
+      ix.push({
+        title: t.title,
+        cat: "Coping tool",
+        sub: "Grounding exercise",
+        body: t.desc,
+        hash: "#coping/" + k,
+      });
+    });
+
+    const supSections = [
+      { title: "Which number do I call? (988 / BHR / 911)", anchor: "sup-triage", body: "988 mobile crisis BHR 314-469-6644 911 Behavioral Health Response triage call text" },
+      { title: "Someone just told me they want to die", anchor: "sup-suicide", body: "suicide suicidal thoughts ask directly Columbia protocol means reduction stay safety plan" },
+      { title: "How to get mobile crisis instead of police", anchor: "sup-mobile", body: "BHR CIT police dispatch 911 mental health emergency 96-hour hold RSMo" },
+      { title: "What to say / not say to someone in crisis", anchor: "sup-say", body: "helpful unhelpful phrases validation listen don't promise secrecy" },
+      { title: "After the crisis (caring contacts)", anchor: "sup-after", body: "caring contacts follow up safety plan anniversary therapist" },
+      { title: "Take care of yourself (for supporters)", anchor: "sup-self", body: "family support group Family-to-Family NAMI HelpLine burnout boundaries caregiver" },
+    ];
+    supSections.forEach((s) => {
+      ix.push({ title: s.title, cat: "Helping someone", sub: "Supporter guide", body: s.body, hash: "#supporter", scrollTo: s.anchor });
+    });
+
+    [
+      { title: "Safety plan", sub: "Build yours", body: "Stanley-Brown suicide plan reasons for living warning signs coping supports professionals means", hash: "#safetyplan" },
+      { title: "Wallet crisis card", sub: "Fold-and-carry", body: "printable fold pocket wallet card crisis 988 BHR 911 carry", hash: "#safetyplan/wallet" },
+      { title: "Mood check-in", sub: "Private, on-device", body: "mood tracking check-in chart CSV export faces emotions clinician", hash: "#checkin" },
+      { title: "My advocacy log", sub: "Personal tracker", body: "advocacy log letters calls legislators export CSV testimony", hash: "#advocacy" },
+      { title: "Community board", sub: "Share with the community", body: "community posts announcements stories questions", hash: "#community" },
+      { title: "Community calendar", sub: "Events and groups", body: "events calendar support groups trainings fundraisers volunteer meetings", hash: "#calendar" },
+      { title: "Volunteer opportunities", sub: "Give a few hours", body: "volunteer NAMI walks helpline peer-to-peer family-to-family registration", hash: "#volunteers" },
+      { title: "Display & reading options", sub: "Accessibility", body: "text size large XL contrast high motion reduced", hash: "" },
+    ].forEach((p) => { p.cat = "Page"; ix.push(p); });
+
+    return ix;
+  }
+
+  let SEARCH_INDEX = null;
+  function getIndex() { if (!SEARCH_INDEX) SEARCH_INDEX = buildSearchIndex(); return SEARCH_INDEX; }
+
+  function runSearch(query) {
+    const tokens = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return [];
+    const results = [];
+    getIndex().forEach((item) => {
+      const title = (item.title || "").toLowerCase();
+      const sub = (item.sub || "").toLowerCase();
+      const body = (item.body || "").toLowerCase();
+      let score = 0;
+      let allMatch = true;
+      for (const t of tokens) {
+        const inTitle = title.includes(t);
+        const inSub = sub.includes(t);
+        const inBody = body.includes(t);
+        if (!inTitle && !inSub && !inBody) { allMatch = false; break; }
+        score += (inTitle ? 6 : 0) + (inSub ? 3 : 0) + (inBody ? 1 : 0);
+        if (title.startsWith(t)) score += 4;
+      }
+      if (allMatch) results.push({ item, score });
+    });
+    results.sort((a, b) => b.score - a.score);
+    return results.slice(0, 12).map((r) => r.item);
+  }
+
+  let searchSelected = 0;
+  function openSearch() {
+    let ov = document.getElementById("search-overlay");
+    if (!ov) {
+      ov = document.createElement("div");
+      ov.id = "search-overlay";
+      ov.className = "search-overlay";
+      ov.innerHTML = `<div class="search-panel" role="dialog" aria-modal="true" aria-label="Search">
+          <div class="search-input-wrap">
+            <span class="search-input-ico" aria-hidden="true">&#9906;</span>
+            <input type="search" id="search-input" placeholder="Search programs, resources, advocacy templates, committees…" autocomplete="off" spellcheck="false" />
+            <button type="button" class="search-close" aria-label="Close">&times;</button>
+          </div>
+          <div class="search-results" id="search-results" role="listbox" aria-label="Results"></div>
+          <div class="search-hint"><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate &middot; <kbd>Enter</kbd> open &middot; <kbd>Esc</kbd> close</div>
+        </div>`;
+      document.body.appendChild(ov);
+      ov.addEventListener("click", (e) => { if (e.target === ov) closeSearch(); });
+      ov.querySelector(".search-close").addEventListener("click", closeSearch);
+      const input = ov.querySelector("#search-input");
+      input.addEventListener("input", () => { searchSelected = 0; paintResults(input.value); });
+      input.addEventListener("keydown", handleSearchKey);
+    }
+    ov.classList.add("open");
+    const input = ov.querySelector("#search-input");
+    input.value = "";
+    searchSelected = 0;
+    paintResults("");
+    setTimeout(() => input.focus(), 10);
+  }
+
+  function closeSearch() {
+    const ov = document.getElementById("search-overlay");
+    if (ov) ov.classList.remove("open");
+  }
+
+  function paintResults(q) {
+    const list = document.getElementById("search-results");
+    if (!list) return;
+    const results = runSearch(q);
+    if (!q) {
+      list.innerHTML = `<div class="search-empty">Type to search across programs, resources, policy, advocacy, coping tools, and the supporter guide.</div>`;
+      return;
+    }
+    if (!results.length) {
+      list.innerHTML = `<div class="search-empty">No matches for "${esc(q)}". Try a different word, or <a href="#resources">browse resources</a>.</div>`;
+      return;
+    }
+    list.innerHTML = results.map((r, i) => `
+      <button type="button" class="search-result ${i === searchSelected ? "selected" : ""}" data-i="${i}" role="option" aria-selected="${i === searchSelected}">
+        <div class="search-result-main">
+          <div class="search-result-title">${esc(r.title)}</div>
+          <div class="search-result-sub">${esc(r.sub || "")}</div>
+        </div>
+        <div class="search-result-cat">${esc(r.cat || "")}</div>
+      </button>`).join("");
+    list.querySelectorAll(".search-result").forEach((btn) => {
+      btn.addEventListener("click", () => gotoResult(results[Number(btn.dataset.i)]));
+      btn.addEventListener("mouseenter", () => { searchSelected = Number(btn.dataset.i); markSelected(); });
+    });
+  }
+
+  function markSelected() {
+    document.querySelectorAll(".search-result").forEach((el, i) => {
+      el.classList.toggle("selected", i === searchSelected);
+      el.setAttribute("aria-selected", i === searchSelected ? "true" : "false");
+      if (i === searchSelected) el.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  function handleSearchKey(e) {
+    const list = document.getElementById("search-results");
+    const count = list ? list.querySelectorAll(".search-result").length : 0;
+    if (e.key === "ArrowDown") { e.preventDefault(); if (count) { searchSelected = (searchSelected + 1) % count; markSelected(); } }
+    else if (e.key === "ArrowUp") { e.preventDefault(); if (count) { searchSelected = (searchSelected - 1 + count) % count; markSelected(); } }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      const current = document.querySelector(".search-result.selected");
+      if (current) current.click();
+    }
+  }
+
+  function gotoResult(r) {
+    closeSearch();
+    if (r.href) { window.open(r.href, "_blank", "noopener,noreferrer"); return; }
+    if (r.hash) {
+      if (location.hash === r.hash) {
+        const route = getRoute();
+        showModule(route.module, route.sub);
+      } else {
+        location.hash = r.hash;
+      }
+    }
+    setTimeout(() => {
+      if (r.scrollTo) {
+        const el = document.getElementById(r.scrollTo);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      if (r.action) r.action();
+    }, 120);
+  }
+
+  function isTypingTarget(t) {
+    if (!t) return false;
+    if (t.isContentEditable) return true;
+    const tag = t.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && !isTypingTarget(e.target) && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      openSearch();
+    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      openSearch();
+    }
+  });
+
+  const st = document.getElementById("search-trigger");
+  if (st) st.addEventListener("click", openSearch);
 
   // ════════════════════════════════════════
   //  SERVICE WORKER (offline)
