@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderModule(id, sub) {
     const panel = document.getElementById(`mod-${id}`);
     switch (id) {
-      case "programs": renderPrograms(panel); break;
+      case "programs": renderPrograms(panel, sub); break;
       case "calendar": renderCalendar(panel); break;
       case "volunteers": renderVolunteers(panel); break;
       case "resources": renderResources(panel); break;
@@ -100,13 +100,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // ════════════════════════════════════════
   //  PROGRAMS MODULE
   // ════════════════════════════════════════
-  function renderPrograms(el) {
+  function renderPrograms(el, sub) {
     let html = `<div class="sec-hdr"><h2>Programs and services</h2>
       <p>Free education, support, and advocacy programs offered by NAMI St. Louis. Click any program for full details.</p></div>`;
     html += `<div class="program-grid">`;
     PROGRAMS_DATA.forEach((p) => {
       const colorVar = `--tag-${p.color === "red" ? "danger" : p.color === "green" ? "success" : p.color === "amber" ? "warn" : p.color}-tx`;
-      html += `<div class="program-card" onclick="showProgramDetail('${p.id}')">
+      html += `<div class="program-card" onclick="showProgramDetail('${p.id}')" data-program-id="${esc(p.id)}">
         ${bmBtn("program", p.id, { title: p.name, sub: p.category })}
         <div class="program-cat" style="color: var(${colorVar})">${p.category}</div>
         <div class="program-name">${p.name}</div>
@@ -116,6 +116,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     html += `</div>`;
     el.innerHTML = html;
+
+    if (sub && PROGRAMS_DATA.some((p) => p.id === sub)) {
+      setTimeout(() => window.showProgramDetail(sub), 0);
+    }
   }
 
   // Program detail overlay
@@ -127,13 +131,18 @@ document.addEventListener("DOMContentLoaded", () => {
       overlay = document.createElement("div");
       overlay.id = "detail-overlay";
       overlay.className = "detail-overlay";
-      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("open"); });
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove("open");
+          if (location.hash.startsWith("#programs/")) location.hash = "programs";
+        }
+      });
       document.body.appendChild(overlay);
     }
     overlay.innerHTML = `<div class="detail-panel">
-      <button class="detail-close" onclick="document.getElementById('detail-overlay').classList.remove('open')">&times;</button>
+      <button class="detail-close" id="program-detail-close">&times;</button>
       <div class="program-cat" style="color: var(--tag-${p.color === "red" ? "danger" : p.color === "green" ? "success" : p.color === "amber" ? "warn" : p.color}-tx); margin-bottom: 4px;">${p.category}</div>
-      <h3 style="font-size: 19px; font-weight: 600; margin-bottom: 12px;">${p.name}</h3>
+      <h3 style="font-size: 19px; font-weight: 600; margin-bottom: 12px;">${esc(p.name)}</h3>
       <p style="font-size: 14px; color: var(--tx-1); line-height: 1.6; margin-bottom: 16px;">${p.description}</p>
       <hr class="divider">
       <div class="detail-row"><div class="detail-key">Audience</div><div class="detail-val">${p.audience}</div></div>
@@ -141,8 +150,23 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="detail-row"><div class="detail-key">Cost</div><div class="detail-val">${p.cost}</div></div>
       <div class="detail-row"><div class="detail-key">Registration</div><div class="detail-val">${p.registration}</div></div>
       <div class="detail-row"><div class="detail-key">Contact</div><div class="detail-val">${p.contact}</div></div>
+      <div class="detail-row"><div class="detail-key">Share</div><div class="detail-val"><button class="cal-btn" id="program-share">Copy link</button></div></div>
     </div>`;
     overlay.classList.add("open");
+    const closer = () => {
+      overlay.classList.remove("open");
+      if (location.hash.startsWith("#programs/")) location.hash = "programs";
+    };
+    document.getElementById("program-detail-close").addEventListener("click", closer);
+    const shareBtn = document.getElementById("program-share");
+    if (shareBtn) {
+      shareBtn.addEventListener("click", async () => {
+        const url = location.origin + location.pathname + `#programs/${id}`;
+        try { await navigator.clipboard.writeText(url); toast("Link copied."); }
+        catch { toast(url); }
+      });
+    }
+    if (location.hash !== `#programs/${id}`) location.hash = `programs/${id}`;
   };
 
   // ════════════════════════════════════════
@@ -741,9 +765,17 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderSafetyPlan(el, sub) {
     if (sub === "wallet") return renderWalletCard(el);
     const plan = Store.get("safety_plan") || {};
+    const prefs = Store.get("prefs") || {};
     let html = `<div class="sec-hdr"><h2>My safety plan</h2>
       <p>A personal plan, based on the Stanley-Brown Safety Planning Intervention, for getting through the hardest moments. Fill in what makes sense — you can always change it.</p></div>
-      <div class="sp-intro"><strong>This stays on your device.</strong> Nothing you type here is sent anywhere. Clearing your browser data will delete it, so use <em>Print / Save as PDF</em> to keep a copy you can share with a trusted person or your clinician.</div>`;
+      <div class="sp-intro"><strong>This stays on your device.</strong> Nothing you type here is sent anywhere. Clearing your browser data will delete it, so use <em>Print / Save as PDF</em> to keep a copy you can share with a trusted person or your clinician.</div>
+
+      <div class="sp-section">
+        <div class="sp-step">Your name</div>
+        <div class="sp-label"><label for="sp-displayname">What should your wallet card and printouts say? (Optional.)</label></div>
+        <div class="sp-help">First name, initials, a nickname — whatever you'd like at the top of the card. Leave blank and it will simply say "You're not alone."</div>
+        <input class="form-input" id="sp-displayname" value="${esc(prefs.displayName || "")}" placeholder="E.g. Alex, or leave blank" />
+      </div>`;
 
     SAFETY_PLAN_SECTIONS.forEach((s, i) => {
       const val = esc(plan[s.key] || "");
@@ -770,6 +802,8 @@ document.addEventListener("DOMContentLoaded", () => {
     el.querySelectorAll(".sp-textarea").forEach((ta) => {
       ta.addEventListener("blur", saveSafetyPlan);
     });
+    const nameEl = el.querySelector("#sp-displayname");
+    if (nameEl) nameEl.addEventListener("blur", saveSafetyPlan);
     document.getElementById("sp-save").addEventListener("click", () => {
       saveSafetyPlan();
       toast("Safety plan saved on this device.");
@@ -792,6 +826,14 @@ document.addEventListener("DOMContentLoaded", () => {
       plan[ta.dataset.sp] = ta.value;
     });
     const ok = Store.set("safety_plan", plan);
+    const nameEl = document.getElementById("sp-displayname");
+    if (nameEl) {
+      const prefs = Store.get("prefs") || {};
+      const next = nameEl.value.trim();
+      if (next) prefs.displayName = next;
+      else delete prefs.displayName;
+      Store.set("prefs", prefs);
+    }
     const s = document.getElementById("sp-status");
     if (s) s.textContent = ok ? "Last saved just now" : "Couldn't save — browser storage may be full";
   }
@@ -2315,8 +2357,7 @@ Sincerely,
         cat: "Program",
         sub: p.category,
         body: [p.summary, p.description, (p.tags || []).join(" "), p.audience, p.format, p.cost].filter(Boolean).join(" "),
-        hash: "#programs",
-        action: () => window.showProgramDetail && window.showProgramDetail(p.id),
+        hash: `#programs/${p.id}`,
       });
     });
 
@@ -2857,8 +2898,9 @@ Sincerely,
   }
 
   function openBookmark(type, id) {
-    const hash = (BOOKMARK_GROUPS.find((g) => g.type === type) || {}).hash || "";
+    let hash = (BOOKMARK_GROUPS.find((g) => g.type === type) || {}).hash || "";
     if (!hash) return;
+    if (type === "program") hash = `#programs/${id}`;
     if (location.hash === hash) {
       const r = getRoute();
       showModule(r.module, r.sub);
@@ -2866,7 +2908,6 @@ Sincerely,
       location.hash = hash;
     }
     setTimeout(() => {
-      if (type === "program" && window.showProgramDetail) window.showProgramDetail(id);
       if (type === "advocacy") {
         const details = document.querySelector(`details.ad-tmpl [data-tmpl="${id}"]`)?.closest("details");
         if (details) { details.open = true; details.scrollIntoView({ behavior: "smooth", block: "start" }); }
