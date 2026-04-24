@@ -88,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
       case "safetyplan": renderSafetyPlan(panel, sub); break;
       case "coping": renderCoping(panel, sub); break;
       case "checkin": renderCheckin(panel); break;
-      case "supporter": renderSupporter(panel); break;
+      case "supporter": renderSupporter(panel, sub); break;
       case "community": renderCommunity(panel); break;
       case "policy": renderPolicy(panel, sub); break;
       case "advocacy": renderAdvocacy(panel); break;
@@ -1755,7 +1755,8 @@ Sincerely,
   // ════════════════════════════════════════
   //  SUPPORTER GUIDE (helping someone in crisis)
   // ════════════════════════════════════════
-  function renderSupporter(el) {
+  function renderSupporter(el, sub) {
+    if (sub === "wallet") return renderSupporterWallet(el);
     el.innerHTML = `
     <div class="sec-hdr"><h2>Helping someone in crisis</h2>
       <p>If you're reading this, you're already doing something right. Here's what to do and what to step back from — written for families, friends, and anyone standing with a person in a mental health crisis.</p></div>
@@ -1845,6 +1846,11 @@ Sincerely,
         <li><strong>Meet responders outside</strong> if safe. Brief them calmly before they enter. Tell them what de-escalates this person, what their triggers are, and what their diagnoses are if you know them.</li>
         <li><strong>Know your rights about the 96-hour hold.</strong> In Missouri (RSMo 632.305), a person can be held up to 96 hours for evaluation if a clinician believes they're a danger to self or others. They keep their civil rights throughout — including the right to a hearing, a lawyer, and to refuse most non-emergency treatment.</li>
       </ol>
+      <div class="sup-followup">
+        <div class="sup-followup-title">Build a crisis card you can carry or hand to responders</div>
+        <p>A wallet-size card with the dispatch script on the front and personal details (name, triggers, what helps, emergency contact) on the back. Prints at real size.</p>
+        <a class="cal-btn primary" href="#supporter/wallet">Open the crisis card builder &rarr;</a>
+      </div>
     </div>
 
     <div class="sup-section" id="sup-say">
@@ -1903,6 +1909,116 @@ Sincerely,
         <li><strong>Set boundaries you can keep.</strong> "I love you and I can't drive over at 3am anymore — but I'll call every morning at 8." A kept small promise beats a broken big one.</li>
       </ul>
     </div>`;
+  }
+
+  // Crisis card a supporter can carry or hand to responders
+  const SUP_CARD_FIELDS = [
+    { key: "name",       label: "Person's first name",        placeholder: "E.g. Alex",                              short: "name" },
+    { key: "age",        label: "Age (optional)",             placeholder: "E.g. 34",                                short: "age" },
+    { key: "address",    label: "Address or landmark",        placeholder: "E.g. 1234 Forest Ave, 2nd floor",        short: "address" },
+    { key: "diagnosis",  label: "Diagnoses or history",       placeholder: "What a responder should know clinically. Keep it short.", short: "history" },
+    { key: "helps",      label: "What helps de-escalate",     placeholder: "E.g. Lower voice. Use their name. Give space. Sit down.", short: "helps" },
+    { key: "triggers",   label: "What to avoid",              placeholder: "E.g. Loud commands. Multiple officers. Don't touch. No sirens.", short: "avoid" },
+    { key: "contact",    label: "Emergency contact (name + phone)", placeholder: "E.g. Maria (sister) — 314-555-0110", short: "contact" },
+    { key: "clinician",  label: "Current provider (name + phone)",  placeholder: "E.g. Dr. Patel — 314-555-0133",       short: "clinician" },
+  ];
+
+  function renderSupporterWallet(el) {
+    const card = Store.get("supporter_card") || {};
+    const field = (f) => `<div class="form-group">
+        <label class="form-label" for="sc-${f.key}">${esc(f.label)}</label>
+        <input class="form-input" id="sc-${f.key}" data-sc="${esc(f.key)}" value="${esc(card[f.key] || "")}" placeholder="${esc(f.placeholder)}" />
+      </div>`;
+
+    const lines = (txt) => {
+      if (!txt) return [];
+      return String(txt).split(/[\r\n]+|;\s+/).map((s) => s.trim()).filter(Boolean);
+    };
+
+    const helpsLines   = lines(card.helps);
+    const triggerLines = lines(card.triggers);
+
+    el.innerHTML = `<div class="sec-hdr"><h2>Crisis card for families + first responders</h2>
+      <p>A pocket-size card to keep on hand — or hand to 911 dispatch, a CIT officer, or an ED clinician. Front has the dispatch script. Back has the personal details that help a responder help the person you love.</p></div>
+
+      <div class="sp-intro"><strong>Kept only on this device.</strong> Nothing about the person you support is sent anywhere. Print and carry it; update whenever things change.</div>
+
+      <div class="wc-actions no-print">
+        <button class="cal-btn primary" id="sc-print" type="button">Print this card</button>
+        <a class="cal-btn" href="#supporter">&larr; Back to supporter guide</a>
+      </div>
+
+      <div class="wc-stage">
+        <article class="wallet-card wallet-card-sup" aria-label="Printable crisis card for supporters">
+          <section class="wc-front">
+            <div class="wc-label">Mental health emergency</div>
+            <div class="wc-sup-script">
+              "This is a mental health emergency, not a crime. Please send a <strong>CIT-trained officer</strong>. <strong>No weapons drawn.</strong> No lights or sirens. I can stay on the line."
+            </div>
+            <div class="wc-row"><span>Call first (non-police)</span><span class="wc-mono">BHR 314-469-6644</span></div>
+            <div class="wc-row"><span>Crisis line</span><span class="wc-mono">988 (call or text)</span></div>
+            <div class="wc-row"><span>Life threat</span><span class="wc-mono">911 — ask for CIT</span></div>
+          </section>
+          <section class="wc-back">
+            <div class="wc-sec-title">${esc(card.name || "[Name]")}${card.age ? " · age " + esc(card.age) : ""}</div>
+            ${card.address ? `<div class="wc-sup-field"><span>Address</span>${esc(card.address)}</div>` : ""}
+            ${card.diagnosis ? `<div class="wc-sup-field"><span>History</span>${esc(card.diagnosis)}</div>` : ""}
+            ${helpsLines.length ? `<div class="wc-sup-field"><span>What helps</span><ul>${helpsLines.slice(0, 3).map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
+            ${triggerLines.length ? `<div class="wc-sup-field"><span>Avoid</span><ul>${triggerLines.slice(0, 3).map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
+            ${card.contact ? `<div class="wc-sup-field"><span>Emergency contact</span>${esc(card.contact)}</div>` : ""}
+            ${card.clinician ? `<div class="wc-sup-field"><span>Provider</span>${esc(card.clinician)}</div>` : ""}
+          </section>
+        </article>
+      </div>
+
+      <p class="wc-tip no-print">Pick <em>Actual size</em> in the print dialog so it comes out at real wallet size. Fold on the dashed line.</p>
+
+      <div class="sec-hdr" style="margin-top:1.5rem"><h3>Fill in or edit</h3>
+        <p>Fields update the card as you type. Leave any field blank if you'd rather not include it.</p></div>
+      <div class="sp-section">
+        ${SUP_CARD_FIELDS.map(field).join("")}
+        <div class="sp-actions">
+          <button class="cal-btn primary" id="sc-save" type="button">Save</button>
+          <button class="cal-btn" id="sc-clear" type="button" style="color:var(--tag-danger-tx)">Clear card</button>
+          <span class="sp-status" id="sc-status">${card._saved ? "Last saved " + timeAgo(card._saved) : "Not yet saved"}</span>
+        </div>
+      </div>`;
+
+    el.querySelectorAll("[data-sc]").forEach((inp) => {
+      inp.addEventListener("input", () => {
+        saveSupporterCard({ quiet: true });
+      });
+      inp.addEventListener("blur", () => saveSupporterCard({ quiet: true }));
+    });
+    document.getElementById("sc-save").addEventListener("click", () => {
+      saveSupporterCard();
+      renderSupporterWallet(el);
+      toast("Crisis card saved on this device.");
+    });
+    document.getElementById("sc-clear").addEventListener("click", () => {
+      if (!confirm("Clear all fields on this crisis card?")) return;
+      Store.delete("supporter_card");
+      renderSupporterWallet(el);
+      toast("Crisis card cleared.");
+    });
+    document.getElementById("sc-print").addEventListener("click", () => {
+      saveSupporterCard({ quiet: true });
+      document.body.classList.add("wallet-print");
+      window.print();
+      setTimeout(() => document.body.classList.remove("wallet-print"), 0);
+    });
+    window.addEventListener("afterprint", () => document.body.classList.remove("wallet-print"), { once: true });
+  }
+
+  function saveSupporterCard(opts) {
+    const card = { _saved: new Date().toISOString() };
+    document.querySelectorAll("[data-sc]").forEach((inp) => { card[inp.dataset.sc] = inp.value; });
+    Store.set("supporter_card", card);
+    const s = document.getElementById("sc-status");
+    if (s) s.textContent = "Last saved just now";
+    if (!opts || !opts.quiet) {
+      // Re-render the card side on input? Skipping to keep caret position. Explicit Save triggers re-render.
+    }
   }
 
   // ════════════════════════════════════════
@@ -2302,6 +2418,7 @@ Sincerely,
     [
       { title: "Safety plan", sub: "Build yours", body: "Stanley-Brown suicide plan reasons for living warning signs coping supports professionals means", hash: "#safetyplan" },
       { title: "Wallet crisis card", sub: "Fold-and-carry", body: "printable fold pocket wallet card crisis 988 BHR 911 carry", hash: "#safetyplan/wallet" },
+      { title: "Crisis card for families + first responders", sub: "CIT dispatch script + personal details", body: "printable fold pocket wallet card 911 CIT dispatch officer responder mental health emergency mobile crisis BHR triggers helps de-escalate emergency contact family supporter", hash: "#supporter/wallet" },
       { title: "Mood check-in", sub: "Private, on-device", body: "mood tracking check-in chart CSV export faces emotions clinician", hash: "#checkin" },
       { title: "My advocacy log", sub: "Personal tracker", body: "advocacy log letters calls legislators export CSV testimony", hash: "#advocacy" },
       { title: "Community board", sub: "Share with the community", body: "community posts announcements stories questions", hash: "#community" },
